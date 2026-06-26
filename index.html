@@ -1244,7 +1244,7 @@ ul { padding: 0; list-style: none; }
       <!-- 시스템 정보 -->
       <div class="settings-card">
         <h3>시스템 정보</h3>
-        <div class="stat-row"><span>버전</span><span id="buildVersion">v1.2.0-20260626</span></div>
+        <div class="stat-row"><span>버전</span><span id="buildVersion">v1.3.0-20260626</span></div>
         <div class="stat-row"><span>등록된 고객 수</span><span id="stat_totalCustomers">-</span></div>
         <div class="stat-row"><span>전체 사이니지 수</span><span id="stat_totalScreens">-</span></div>
         <div class="stat-row"><span>누적 결제 건수</span><span id="stat_totalPayments">-</span></div>
@@ -1545,7 +1545,7 @@ ul { padding: 0; list-style: none; }
 ============================================================ */
 'use strict';
 
-console.log('%c구독관리 어드민 build: v1.2.0-20260626', 'color:#007AFF;font-weight:bold;font-size:14px;');
+console.log('%c구독관리 어드민 build: v1.3.0-20260626', 'color:#007AFF;font-weight:bold;font-size:14px;');
 
 /* ============================================================
    1. 상태 (State)
@@ -2338,6 +2338,7 @@ function savePlanTemplates() {
 
   renderPlanTemplateEditor();
   populatePlanTemplateOptions();
+  saveToStorage();
   showToast('플랜 템플릿이 저장되었습니다.', 'success');
 }
 
@@ -2389,6 +2390,7 @@ function resetAllData() {
       if (currentPage === 'dashboard') renderDashboardPage();
       if (currentPage === 'payment') renderPaymentPage();
       renderSettingsPage();
+      saveToStorage();
       showToast('초기화되었습니다.', 'success');
     } catch (err) {
       console.error('초기화 중 오류:', err);
@@ -2543,7 +2545,7 @@ function handleCustomerFormSubmit(e) {
   };
 
   showLoading();
-  // 실제 서버 연동 시 이 부분에서 API 호출 (지금은 클라이언트 메모리에 저장)
+  // 실제 서버 연동 시 이 부분에서 API 호출 (지금은 클라이언트 localStorage에 저장)
   setTimeout(() => {
     if (id) {
       const idx = customers.findIndex(c => c.id === id);
@@ -2553,6 +2555,7 @@ function handleCustomerFormSubmit(e) {
       customers.unshift(mkCustomer({ ...payload, payments: [] }));
       showToast('신규 고객이 등록되었습니다.', 'success');
     }
+    saveToStorage();
     hideLoading();
     closeModal('customerModalOverlay');
     renderAll();
@@ -2565,6 +2568,7 @@ function deleteCustomerById(id) {
   showLoading();
   setTimeout(() => {
     customers = customers.filter(c => c.id !== id);
+    saveToStorage();
     hideLoading();
     showToast('고객 정보가 삭제되었습니다.', 'success');
     closeModal('detailDrawerOverlay');
@@ -2734,6 +2738,7 @@ function handlePaymentFormSubmit(e) {
       customer.paymentHistory.push({ id: generateId('pay'), ...payload });
       showToast('결제 내역이 추가되었습니다.', 'success');
     }
+    saveToStorage();
     hideLoading();
     closeModal('paymentModalOverlay');
     if (activeDetailId === customer.id) renderDetailDrawer();
@@ -2749,6 +2754,7 @@ function deletePaymentById(customerId, paymentId) {
   showLoading();
   setTimeout(() => {
     customer.paymentHistory = customer.paymentHistory.filter(p => p.id !== paymentId);
+    saveToStorage();
     hideLoading();
     showToast('결제 내역이 삭제되었습니다.', 'success');
     if (activeDetailId === customerId) renderDetailDrawer();
@@ -3011,6 +3017,7 @@ function bindEvents() {
     appSettings.adminName = document.getElementById('set_adminName').value.trim() || '관리자';
     appSettings.teamName = document.getElementById('set_teamName').value.trim() || '운영팀';
     renderAdminChip();
+    saveToStorage();
     showToast('관리자 정보가 저장되었습니다.', 'success');
   });
 
@@ -3020,6 +3027,7 @@ function bindEvents() {
     appSettings.notifyOverdueOnLoad = document.getElementById('set_notifyOverdue').checked;
     document.getElementById('set_expiringThreshold').value = appSettings.expiringSoonThreshold;
     renderTable(); // 변경된 기준일을 구독관리 테이블에 즉시 반영
+    saveToStorage();
     showToast('알림 설정이 저장되었습니다.', 'success');
   });
 
@@ -3042,8 +3050,48 @@ window.addEventListener('error', (e) => {
   }
 });
 
+// 새로고침해도 데이터가 남아있도록 localStorage에 저장/불러오기
+const STORAGE_KEY = 'signage_subscription_admin_v1';
+
+function saveToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      customers,
+      planTemplates: PLAN_TEMPLATES,
+      appSettings,
+    }));
+  } catch (err) {
+    console.warn('localStorage 저장 실패 (브라우저 저장공간 제한/차단 가능):', err);
+  }
+}
+
+// 저장된 데이터가 있으면 불러와서 적용. 불러왔으면 true, 없으면 false 반환
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+
+    if (Array.isArray(data.customers)) customers = data.customers;
+    if (Array.isArray(data.planTemplates)) {
+      data.planTemplates.forEach((saved, i) => {
+        if (PLAN_TEMPLATES[i]) Object.assign(PLAN_TEMPLATES[i], saved);
+      });
+    }
+    if (data.appSettings) Object.assign(appSettings, data.appSettings);
+    return true;
+  } catch (err) {
+    console.warn('localStorage 불러오기 실패:', err);
+    return false;
+  }
+}
+
 function init() {
-  seedData();
+  const restored = loadFromStorage();
+  if (!restored) {
+    seedData();
+    saveToStorage();
+  }
   populatePlanTemplateOptions();
   bindEvents();
   renderDashboardPage();
