@@ -1,0 +1,3065 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>구독관리 · 사이니지 관리자</title>
+
+<!-- Pretendard (SF Pro 대체용 시스템 폰트) -->
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+
+<style>
+/* ============================================================
+   구독관리 어드민 — Apple 스타일 디자인 시스템
+   ------------------------------------------------------------
+   - 톤 : iOS Settings / Apple Wallet / Apple Dashboard
+   - 컬러, Radius 등은 요청서의 디자인 가이드를 그대로 따름
+============================================================ */
+
+/* ---------------------- 디자인 토큰 ---------------------- */
+:root {
+  /* Color */
+  --bg: #F5F5F7;
+  --card: #FFFFFF;
+  --primary: #007AFF;
+  --primary-press: #0062CC;
+  --primary-soft: rgba(0, 122, 255, 0.1);
+  --success: #34C759;
+  --success-soft: rgba(52, 199, 89, 0.12);
+  --warning: #FF9F0A;
+  --warning-soft: rgba(255, 159, 10, 0.14);
+  --danger: #FF3B30;
+  --danger-soft: rgba(255, 59, 48, 0.1);
+  --purple: #AF52DE;
+  --purple-soft: rgba(175, 82, 222, 0.12);
+  --gray-1: #8E8E93;
+  --gray-2: #AEAEB2;
+  --gray-3: #C7C7CC;
+  --gray-4: #D1D1D6;
+  --gray-5: #E5E5EA;
+  --gray-6: #F2F2F7;
+  --text: #1D1D1F;
+  --text-secondary: #6E6E73;
+  --text-tertiary: #98989D;
+  --border: rgba(60, 60, 67, 0.1);
+
+  /* Radius */
+  --r-lg: 24px;
+  --r-md: 18px;
+  --r-sm: 12px;
+  --r-pill: 999px;
+
+  /* Shadow */
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04);
+  --shadow-modal: 0 24px 70px rgba(0,0,0,0.2);
+  --shadow-pop: 0 8px 24px rgba(0,0,0,0.1);
+
+  /* Motion */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --t-fast: 0.15s var(--ease);
+  --t-base: 0.25s var(--ease);
+  --t-slow: 0.4s var(--ease);
+}
+
+/* ---------------------- 기본 리셋 ---------------------- */
+/* hidden 속성이 display:flex 같은 author 스타일에 덮여 무시되는 것을 방지 (로딩 스피너가 계속 떠 있던 원인) */
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "SF Pro Text",
+               "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, p, ul { margin: 0; }
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; font-size: 14px; }
+ul { padding: 0; list-style: none; }
+
+/* 스크롤바를 은은하게 */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--gray-4); border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ============================================================
+   전체 레이아웃
+============================================================ */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ---------------------- 사이드바 (PC) ---------------------- */
+.sidebar {
+  width: 248px;
+  flex-shrink: 0;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  transition: transform var(--t-base);
+  z-index: 50;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 24px;
+}
+.brand-mark { color: var(--primary); font-size: 18px; }
+.brand-name { font-weight: 700; font-size: 15px; letter-spacing: -0.2px; }
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  border: none;
+  background: transparent;
+  border-radius: var(--r-sm);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.nav-item:hover { background: var(--gray-6); color: var(--text); }
+.nav-item.is-active {
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 600;
+}
+.nav-icon { width: 18px; text-align: center; font-size: 15px; }
+
+.sidebar-footer { padding-top: 12px; border-top: 1px solid var(--border); }
+.admin-chip { display: flex; align-items: center; gap: 10px; padding: 8px; }
+.admin-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; flex-shrink: 0;
+}
+.admin-meta { display: flex; flex-direction: column; line-height: 1.3; }
+.admin-meta strong { font-size: 13px; }
+.admin-meta span { font-size: 12px; color: var(--text-tertiary); }
+
+.backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+  opacity: 0; visibility: hidden; transition: opacity var(--t-base);
+  z-index: 40;
+}
+.backdrop.is-visible { opacity: 1; visibility: visible; }
+
+/* ---------------------- 메인 콘텐츠 ---------------------- */
+.content {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 36px 60px;
+}
+
+/* 페이지 전환 (구독관리 / 결제관리 / 설정) */
+.page { display: none; }
+.page.is-active { display: block; animation: pageIn 0.25s var(--ease); }
+@keyframes pageIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.page-header-left { display: flex; align-items: center; gap: 12px; }
+.page-header h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+.page-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar-toggle { display: none; }
+
+/* 검색창 */
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 9px 14px;
+  width: 280px;
+  transition: box-shadow var(--t-fast), border-color var(--t-fast);
+}
+.search-field:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-soft);
+}
+.search-icon { color: var(--text-tertiary); font-size: 14px; }
+.search-field input {
+  border: none; outline: none; background: transparent; flex: 1;
+  font-size: 13px; color: var(--text);
+}
+.search-field input::placeholder { color: var(--text-tertiary); }
+
+/* ---------------------- 버튼 ---------------------- */
+.btn {
+  border: none;
+  border-radius: var(--r-pill);
+  padding: 10px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform var(--t-fast), background var(--t-fast), opacity var(--t-fast);
+  white-space: nowrap;
+}
+.btn:active { transform: scale(0.96); }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-press); }
+.btn-secondary { background: var(--gray-6); color: var(--text); }
+.btn-secondary:hover { background: var(--gray-5); }
+.btn-ghost { background: transparent; color: var(--text-secondary); }
+.btn-ghost:hover { background: var(--gray-6); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { opacity: 0.88; }
+.btn-danger-ghost { background: var(--danger-soft); color: var(--danger); }
+.btn-danger-ghost:hover { background: rgba(255,59,48,0.18); }
+.btn-small { padding: 7px 13px; font-size: 12.5px; }
+.btn-plus { font-size: 15px; line-height: 1; }
+
+.icon-btn {
+  width: 34px; height: 34px;
+  border: none; background: transparent;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-secondary);
+  font-size: 15px;
+  transition: background var(--t-fast);
+}
+.icon-btn:hover { background: var(--gray-6); }
+
+/* ============================================================
+   요약 카드
+============================================================ */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.summary-card {
+  background: var(--card);
+  border-radius: var(--r-md);
+  padding: 18px 16px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  transition: transform var(--t-base);
+}
+.summary-card:hover { transform: translateY(-2px); }
+.summary-card .s-icon {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+.summary-card .s-value {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  white-space: nowrap;
+}
+.summary-card .s-label {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.summary-grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+.icon-blue { background: var(--primary-soft); color: var(--primary); }
+.icon-green { background: var(--success-soft); color: var(--success); }
+.icon-orange { background: var(--warning-soft); color: var(--warning); }
+.icon-red { background: var(--danger-soft); color: var(--danger); }
+.icon-gray { background: var(--gray-6); color: var(--gray-1); }
+.icon-purple { background: var(--purple-soft); color: var(--purple); }
+
+/* ============================================================
+   필터 / 정렬 툴바
+============================================================ */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.filter-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  background: var(--card);
+  padding: 4px;
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-card);
+}
+.chip {
+  border: none;
+  background: transparent;
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: background var(--t-fast), color var(--t-fast);
+  white-space: nowrap;
+}
+.chip:hover { background: var(--gray-6); }
+.chip.is-active { background: var(--primary); color: #fff; }
+
+.toolbar-right { display: flex; gap: 8px; }
+.select-field {
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: var(--r-pill);
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text);
+  outline: none;
+}
+
+/* ============================================================
+   고객 리스트 테이블
+============================================================ */
+.list-card {
+  background: var(--card);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.table-scroll { overflow-x: auto; }
+
+.customer-table { width: 100%; border-collapse: collapse; min-width: 1260px; }
+.customer-table thead th {
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-tertiary);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+.customer-table thead th:last-child { border-right: none; }
+.customer-table tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  font-size: 13px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.customer-table tbody td:last-child { border-right: none; }
+.customer-table tbody tr { transition: background var(--t-fast); cursor: pointer; }
+.customer-table tbody tr:hover { background: var(--gray-6); }
+.customer-table tbody tr:last-child td { border-bottom: none; }
+
+.cell-name { font-weight: 600; }
+
+/* 구독상태 색상 점 — 이름 앞에 붙어서 상태를 바로 알 수 있게 함 */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 7px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.status-dot-green  { background: var(--success); }
+.status-dot-orange { background: var(--warning); }
+.status-dot-red    { background: var(--danger); }
+.status-dot-gray   { background: var(--gray-3); }
+.cell-sub { color: var(--text-tertiary); font-size: 12px; margin-top: 2px; }
+.cell-memo {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-secondary);
+}
+.cell-days { font-weight: 600; }
+.cell-days.is-urgent { color: var(--danger); }
+.cell-days.is-soon { color: var(--warning); }
+
+/* 결제방식 / 구독상태 뱃지 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: var(--r-pill);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge-blue   { background: var(--primary-soft); color: var(--primary); }
+.badge-purple { background: var(--purple-soft); color: var(--purple); }
+.badge-green  { background: var(--success-soft); color: #1c8b3c; }
+.badge-orange { background: var(--warning-soft); color: #b5740a; }
+.badge-red    { background: var(--danger-soft); color: var(--danger); }
+.badge-gray   { background: var(--gray-6); color: var(--gray-1); }
+
+.row-actions { display: flex; gap: 4px; }
+.row-actions .icon-btn { width: 30px; height: 30px; font-size: 13px; }
+
+/* 빈 상태 */
+.empty-state { padding: 64px 24px; text-align: center; }
+.empty-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.empty-desc { font-size: 13px; color: var(--text-tertiary); }
+
+/* ============================================================
+   모달 / 사이드 드로어 공통
+============================================================ */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; visibility: hidden;
+  transition: opacity var(--t-base);
+  z-index: 100;
+  padding: 16px;
+}
+.modal-overlay.is-open { opacity: 1; visibility: visible; }
+
+.modal {
+  background: var(--card);
+  border-radius: var(--r-lg);
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-modal);
+  transform: translateY(16px) scale(0.97);
+  opacity: 0;
+  transition: transform var(--t-base), opacity var(--t-base);
+}
+.modal-overlay.is-open .modal { transform: translateY(0) scale(1); opacity: 1; }
+.modal-lg { max-width: 680px; }
+.modal-sm { max-width: 460px; }
+
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.modal-header h2 { font-size: 17px; font-weight: 700; }
+
+.modal-body { padding: 20px 24px; overflow-y: auto; overflow-x: hidden; }
+.modal-footer {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* 폼 */
+.form-section { margin-bottom: 22px; }
+.form-section:last-child { margin-bottom: 4px; }
+.form-section-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 10px;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); min-width: 0; }
+.field-full { grid-column: 1 / -1; }
+.field input, .field select, .field textarea {
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  font-size: 13.5px;
+  color: var(--text);
+  outline: none;
+  background: var(--gray-6);
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+  font-weight: 400;
+  min-width: 0;
+  width: 100%;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: 0 0 0 4px var(--primary-soft);
+}
+.field textarea { resize: vertical; min-height: 64px; }
+
+.field-toggle { flex-direction: row; align-items: center; justify-content: space-between; padding-top: 8px; }
+
+/* iOS 스타일 토글 스위치 */
+.toggle { position: relative; display: inline-flex; }
+.toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.toggle-track {
+  width: 44px; height: 26px;
+  background: var(--gray-4);
+  border-radius: var(--r-pill);
+  display: flex; align-items: center;
+  padding: 2px;
+  transition: background var(--t-fast);
+}
+.toggle-thumb {
+  width: 22px; height: 22px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  transition: transform var(--t-fast);
+}
+.toggle input:checked + .toggle-track { background: var(--success); }
+.toggle input:checked + .toggle-track .toggle-thumb { transform: translateX(18px); }
+
+/* ---------------------- 사이드 드로어 ---------------------- */
+.drawer-overlay { justify-content: flex-end; padding: 0; background: rgba(0,0,0,0.3); }
+.drawer {
+  width: 100%;
+  max-width: 420px;
+  height: 100%;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-modal);
+  transform: translateX(24px);
+  opacity: 0;
+  transition: transform var(--t-base), opacity var(--t-base);
+  border-radius: 0;
+}
+.drawer-overlay.is-open .drawer { transform: translateX(0); opacity: 1; }
+.drawer-body { padding: 20px 24px; overflow-y: auto; overflow-x: hidden; flex: 1; }
+
+.detail-profile {
+  background: var(--gray-6);
+  border-radius: var(--r-md);
+  padding: 18px;
+  margin-bottom: 16px;
+}
+.detail-profile .dp-name { font-size: 17px; font-weight: 700; margin-bottom: 2px; }
+.detail-profile .dp-store { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; }
+.detail-profile .dp-row {
+  display: flex; justify-content: space-between;
+  font-size: 12.5px; padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+.detail-profile .dp-row:first-of-type { border-top: none; }
+.detail-profile .dp-row span:first-child { color: var(--text-tertiary); }
+.detail-profile .dp-row span:last-child { font-weight: 600; text-align: right; }
+.detail-profile .dp-badges { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+
+.detail-actions { display: flex; gap: 8px; margin-bottom: 6px; }
+.detail-actions .btn { flex: 1; justify-content: center; }
+.detail-divider { height: 1px; background: var(--border); margin: 18px 0; }
+
+.detail-payments-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.detail-payments-header h3 { font-size: 14.5px; font-weight: 700; }
+.payment-hint { font-size: 11.5px; color: var(--text-tertiary); margin: -6px 0 12px; }
+
+.payment-history-list { display: flex; flex-direction: column; gap: 8px; }
+.payment-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--gray-6);
+  border-radius: var(--r-sm);
+  transition: background var(--t-fast);
+  cursor: pointer;
+}
+.payment-item:hover { background: var(--gray-5); }
+.payment-item .pi-main { display: flex; flex-direction: column; gap: 2px; }
+.payment-item .pi-amount { font-weight: 700; font-size: 14px; }
+.payment-item .pi-meta { font-size: 11.5px; color: var(--text-tertiary); }
+.payment-item .pi-actions { display: flex; gap: 2px; }
+.payment-item .pi-actions .icon-btn { width: 28px; height: 28px; font-size: 12px; }
+.empty-payment-msg { text-align: center; color: var(--text-tertiary); font-size: 12.5px; padding: 24px 0; }
+
+/* ============================================================
+   삭제 확인 Dialog
+============================================================ */
+.confirm-dialog {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -48%) scale(0.95);
+  background: var(--card);
+  border-radius: var(--r-md);
+  padding: 24px;
+  width: 320px;
+  text-align: center;
+  box-shadow: var(--shadow-modal);
+  opacity: 0; visibility: hidden;
+  transition: transform var(--t-base), opacity var(--t-base);
+  z-index: 200;
+}
+#confirmDialogOverlay { background: rgba(0,0,0,0.35); z-index: 199; }
+#confirmDialogOverlay.is-open .confirm-dialog { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); }
+.confirm-title { font-size: 15.5px; font-weight: 700; margin-bottom: 6px; }
+.confirm-desc { font-size: 12.5px; color: var(--text-tertiary); margin-bottom: 18px; }
+.confirm-actions { display: flex; gap: 8px; }
+.confirm-actions .btn { flex: 1; justify-content: center; }
+
+/* ============================================================
+   로딩 오버레이
+============================================================ */
+.loading-overlay {
+  position: fixed; inset: 0;
+  background: rgba(255,255,255,0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 300;
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--gray-4);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   토스트
+============================================================ */
+.toast-container {
+  position: fixed;
+  bottom: 28px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 400;
+  align-items: center;
+}
+.toast {
+  background: rgba(29,29,31,0.92);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: var(--shadow-pop);
+  opacity: 0;
+  transform: translateY(12px);
+  animation: toastIn 0.3s var(--ease) forwards;
+}
+.toast.toast-out { animation: toastOut 0.25s var(--ease) forwards; }
+.toast-success::before { content: "✓"; color: var(--success); }
+.toast-error::before { content: "✕"; color: #FF6961; }
+.toast-info::before { content: "ⓘ"; color: #6CB6FF; }
+@keyframes toastIn { to { opacity: 1; transform: translateY(0); } }
+@keyframes toastOut { to { opacity: 0; transform: translateY(8px); } }
+
+/* ============================================================
+   Dashboard 페이지
+============================================================ */
+.dashboard-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.dist-card { padding: 20px 22px; }
+.dist-card-title { font-size: 14.5px; font-weight: 700; margin-bottom: 16px; }
+
+.dist-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+.dist-label { width: 96px; flex-shrink: 0; }
+.dist-bar-track { flex: 1; height: 8px; background: var(--gray-6); border-radius: var(--r-pill); overflow: hidden; }
+.dist-bar-fill { height: 100%; border-radius: var(--r-pill); transition: width var(--t-slow); }
+.dist-count { width: 52px; flex-shrink: 0; text-align: right; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
+
+.dash-list { display: flex; flex-direction: column; gap: 8px; }
+.dash-list-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 12px;
+  background: var(--gray-6);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background var(--t-fast);
+  gap: 10px;
+}
+.dash-list-item:hover { background: var(--gray-5); }
+.dli-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dli-name { font-size: 13.5px; font-weight: 600; white-space: nowrap; }
+.dli-meta { font-size: 11.5px; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dli-right { flex-shrink: 0; }
+
+/* ============================================================
+   설정 페이지
+============================================================ */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 920px;
+}
+.settings-card {
+  background: var(--card);
+  border-radius: var(--r-lg);
+  padding: 22px;
+  box-shadow: var(--shadow-card);
+}
+.settings-card-full { grid-column: 1 / -1; }
+.settings-card h3 { font-size: 14.5px; font-weight: 700; margin-bottom: 14px; }
+.settings-desc { font-size: 12.5px; color: var(--text-tertiary); margin-bottom: 16px; line-height: 1.5; }
+
+/* 플랜 템플릿 편집 행 */
+.plan-template-list { display: flex; flex-direction: column; gap: 10px; }
+.plan-template-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  gap: 10px;
+  padding: 14px;
+  background: var(--gray-6);
+  border-radius: var(--r-sm);
+}
+.ptr-field { display: flex; flex-direction: column; gap: 5px; font-size: 11.5px; font-weight: 600; color: var(--text-secondary); }
+.ptr-field input {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text);
+  background: #fff;
+  outline: none;
+  min-width: 0;
+  width: 100%;
+}
+.ptr-field input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.settings-toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.settings-actions { display: flex; gap: 8px; margin-top: 16px; }
+.stat-row {
+  display: flex; justify-content: space-between;
+  font-size: 12.5px;
+  padding: 9px 0;
+  border-top: 1px solid var(--border);
+}
+.stat-row:first-child { border-top: none; }
+.stat-row span:first-child { color: var(--text-tertiary); }
+.stat-row span:last-child { font-weight: 700; }
+
+/* ============================================================
+   반응형 — 모바일
+============================================================ */
+@media (max-width: 980px) {
+  .summary-grid { grid-template-columns: repeat(4, minmax(140px, 1fr)); overflow-x: auto; }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0;
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-modal);
+  }
+  .sidebar.is-open { transform: translateX(0); }
+  .sidebar-toggle { display: flex; flex-direction: column; gap: 3px; justify-content: center; align-items: center; }
+  .sidebar-toggle span { width: 16px; height: 2px; background: var(--text); border-radius: 2px; }
+
+  .content { padding: 18px 16px 80px; }
+  .page-header { gap: 12px; }
+  .page-header-left { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .page-header h1 { font-size: 21px; }
+  .page-header-right { width: 100%; }
+  .search-field { width: 100%; flex: 1; }
+
+  .summary-grid {
+    display: flex;
+    grid-template-columns: none;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scroll-snap-type: x mandatory;
+  }
+  .summary-card { min-width: 130px; scroll-snap-align: start; }
+
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .filter-group { overflow-x: auto; }
+  .toolbar-right { display: grid; grid-template-columns: 1fr 1fr; }
+
+  /* ---- 테이블 → iOS 설정앱 스타일 카드 리스트로 전환 ---- */
+  .table-scroll { overflow: visible; }
+  .customer-table { min-width: 0; }
+  .customer-table thead { display: none; }
+  .customer-table, .customer-table tbody, .customer-table tr, .customer-table td {
+    display: block;
+    width: 100%;
+  }
+  .customer-table tbody tr {
+    background: var(--card);
+    border-radius: var(--r-md);
+    margin: 0 0 10px;
+    padding: 4px 14px;
+    border: 1px solid var(--border);
+  }
+  .customer-table tbody td {
+    border-bottom: 1px solid var(--border);
+    border-right: none;
+    padding: 10px 0;
+    white-space: normal;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .customer-table tbody tr td:last-child { border-bottom: none; }
+  .customer-table tbody td::before {
+    content: attr(data-label);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+  }
+  /* 업체명 셀은 카드 헤더처럼 강조 (메인 식별자) */
+  .customer-table tbody td[data-label="업체명"] {
+    padding-top: 14px;
+  }
+  .customer-table tbody td[data-label="업체명"]::before { display: none; }
+  .customer-table tbody td[data-label="업체명"] .cell-name { font-size: 15.5px; }
+  .row-actions { width: 100%; justify-content: flex-end; }
+
+  .modal-lg, .modal { max-width: 100%; }
+  .form-grid { grid-template-columns: 1fr; }
+  .drawer { max-width: 100%; }
+  .settings-grid { grid-template-columns: 1fr; max-width: 100%; }
+  .dashboard-grid-2 { grid-template-columns: 1fr; }
+  .plan-template-row { grid-template-columns: 1fr 1fr; }
+  .summary-grid-4 .summary-card { min-width: 130px; }
+}
+
+@media (max-width: 480px) {
+  .summary-card { min-width: 116px; padding: 14px 12px; }
+  .summary-card .s-value { font-size: 19px; }
+}
+
+/* 모션 최소화 환경 대응 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     레이아웃 전체 래퍼 : 사이드바 + 메인 콘텐츠
+============================================================ -->
+<div class="app-shell">
+
+  <!-- ===================== 사이드 메뉴 (PC) / 하단 탭(모바일) ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-mark">●</span>
+      <span class="brand-name">사이니지 구독관리</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item is-active" data-page="dashboard" type="button">
+        <span class="nav-icon" aria-hidden="true">⌂</span>
+        <span class="nav-label">대시보드</span>
+      </button>
+      <button class="nav-item" data-page="subscription" type="button">
+        <span class="nav-icon" aria-hidden="true">◎</span>
+        <span class="nav-label">구독관리</span>
+      </button>
+      <button class="nav-item" data-page="payment" type="button">
+        <span class="nav-icon" aria-hidden="true">▤</span>
+        <span class="nav-label">결제관리</span>
+      </button>
+      <button class="nav-item" data-page="settings" type="button">
+        <span class="nav-icon" aria-hidden="true">⚙</span>
+        <span class="nav-label">설정</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="admin-chip">
+        <div class="admin-avatar" id="adminAvatar">관</div>
+        <div class="admin-meta">
+          <strong id="adminNameDisplay">관리자</strong>
+          <span id="adminTeamDisplay">운영팀</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== 메인 콘텐츠 ===================== -->
+  <main class="content">
+
+  <!-- ============================================================
+       페이지 0 : Dashboard
+  ============================================================ -->
+  <section class="page is-active" id="page-dashboard">
+
+    <header class="page-header">
+      <div class="page-header-left">
+        <button class="icon-btn sidebar-toggle" id="sidebarToggleDashboard" type="button" aria-label="메뉴 열기">
+          <span></span><span></span><span></span>
+        </button>
+        <h1>대시보드</h1>
+      </div>
+    </header>
+
+    <!-- 전체 요약 카드 -->
+    <section class="summary-grid" id="dashboardSummaryGrid" aria-label="전체 현황 요약">
+      <!-- JS가 채워 넣음 -->
+    </section>
+
+    <!-- 분포 차트 2개 -->
+    <section class="dashboard-grid-2">
+      <div class="list-card dist-card">
+        <h3 class="dist-card-title">구독 상태 분포</h3>
+        <div id="distStatus"><!-- JS가 채워 넣음 --></div>
+      </div>
+      <div class="list-card dist-card">
+        <h3 class="dist-card-title">결제 방식 분포</h3>
+        <div id="distPayment"><!-- JS가 채워 넣음 --></div>
+      </div>
+    </section>
+
+    <!-- 만료 임박 / 미납 리스트 2개 -->
+    <section class="dashboard-grid-2">
+      <div class="list-card dist-card">
+        <h3 class="dist-card-title">만료 임박 고객 (D-30 이내)</h3>
+        <ul class="dash-list" id="dashExpiringList"><!-- JS가 채워 넣음 --></ul>
+        <p class="empty-payment-msg" id="dashExpiringEmpty" hidden>임박한 만료 건이 없습니다.</p>
+      </div>
+      <div class="list-card dist-card">
+        <h3 class="dist-card-title">미납 고객</h3>
+        <ul class="dash-list" id="dashOverdueList"><!-- JS가 채워 넣음 --></ul>
+        <p class="empty-payment-msg" id="dashOverdueEmpty" hidden>미납 고객이 없습니다.</p>
+      </div>
+    </section>
+
+  </section><!-- /#page-dashboard -->
+
+  <!-- ============================================================
+       페이지 1 : 구독관리
+  ============================================================ -->
+  <section class="page" id="page-subscription">
+
+    <!-- ----------- Header ----------- -->
+    <header class="page-header">
+      <div class="page-header-left">
+        <button class="icon-btn sidebar-toggle" id="sidebarToggle" type="button" aria-label="메뉴 열기">
+          <span></span><span></span><span></span>
+        </button>
+        <h1>구독관리</h1>
+      </div>
+
+      <div class="page-header-right">
+        <div class="search-field">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input type="text" id="searchInput" placeholder="업체명, 고객명, 연락처, 이메일, 메모 검색" autocomplete="off">
+        </div>
+        <button class="btn btn-primary" id="openCreateModalBtn" type="button">
+          <span class="btn-plus">+</span> 신규 등록
+        </button>
+      </div>
+    </header>
+
+    <!-- ----------- 상단 요약 카드 ----------- -->
+    <section class="summary-grid" id="summaryGrid" aria-label="구독 현황 요약">
+      <!-- JS가 채워 넣음 -->
+    </section>
+
+    <!-- ----------- 필터 / 정렬 바 ----------- -->
+    <section class="toolbar">
+      <div class="filter-group" id="statusFilterGroup" data-filter-type="status">
+        <button class="chip is-active" data-value="all">전체</button>
+        <button class="chip" data-value="active">이용 중</button>
+        <button class="chip" data-value="expiring">만료 예정</button>
+        <button class="chip" data-value="overdue">미납</button>
+        <button class="chip" data-value="suspended">이용 정지</button>
+        <button class="chip" data-value="cancelled">해지</button>
+      </div>
+
+      <div class="toolbar-right">
+        <select class="select-field" id="paymentFilterSelect" aria-label="결제 방식 필터">
+          <option value="all">결제방식 전체</option>
+          <option value="card">💳 신용카드</option>
+          <option value="tax_invoice">🧾 전자세금계산서</option>
+          <option value="cash">💵 현금</option>
+          <option value="transfer">🏦 계좌이체</option>
+        </select>
+
+        <select class="select-field" id="sortSelect" aria-label="정렬 기준">
+          <option value="recent">최근 등록순</option>
+          <option value="expiry">만료일순</option>
+          <option value="nextPayment">다음 결제일순</option>
+          <option value="name">업체명순</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- ----------- 고객 리스트 ----------- -->
+    <section class="list-card">
+      <div class="table-scroll">
+        <table class="customer-table" id="customerTable">
+          <thead>
+            <tr>
+              <th>업체명</th>
+              <th>고객명</th>
+              <th>연락처</th>
+              <th>플랜</th>
+              <th>사이니지 수</th>
+              <th>월 구독료</th>
+              <th>결제 방식</th>
+              <th>결제 상태</th>
+              <th>구독 상태</th>
+              <th>시작일</th>
+              <th>만료일</th>
+              <th>다음 결제일</th>
+              <th>남은 기간</th>
+              <th>메모</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody id="customerTableBody">
+            <!-- JS가 채워 넣음 -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty-state" id="emptyState" hidden>
+        <p class="empty-title">검색 결과가 없습니다</p>
+        <p class="empty-desc">다른 검색어나 필터 조건을 시도해보세요.</p>
+      </div>
+    </section>
+
+  </section><!-- /#page-subscription -->
+
+
+  <!-- ============================================================
+       페이지 2 : 결제관리
+  ============================================================ -->
+  <section class="page" id="page-payment">
+
+    <header class="page-header">
+      <div class="page-header-left">
+        <button class="icon-btn sidebar-toggle" id="sidebarTogglePayment" type="button" aria-label="메뉴 열기">
+          <span></span><span></span><span></span>
+        </button>
+        <h1>결제관리</h1>
+      </div>
+
+      <div class="page-header-right">
+        <div class="search-field">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input type="text" id="paymentSearchInput" placeholder="업체명, 고객명, 증빙, 메모 검색" autocomplete="off">
+        </div>
+        <button class="btn btn-primary" id="openCreatePaymentBtn" type="button">
+          <span class="btn-plus">+</span> 결제 추가
+        </button>
+      </div>
+    </header>
+
+    <!-- 결제 요약 카드 -->
+    <section class="summary-grid summary-grid-4" id="paymentSummaryGrid" aria-label="결제 현황 요약">
+      <!-- JS가 채워 넣음 -->
+    </section>
+
+    <!-- 필터 / 정렬 -->
+    <section class="toolbar">
+      <div class="filter-group" id="paymentStatusFilterGroup" data-filter-type="status">
+        <button class="chip is-active" data-value="all">전체</button>
+        <button class="chip" data-value="completed">완료</button>
+        <button class="chip" data-value="pending">대기</button>
+        <button class="chip" data-value="failed">실패</button>
+      </div>
+
+      <div class="toolbar-right">
+        <select class="select-field" id="paymentMethodFilterSelect" aria-label="결제 방식 필터">
+          <option value="all">결제방식 전체</option>
+          <option value="card">💳 신용카드</option>
+          <option value="tax_invoice">🧾 전자세금계산서</option>
+          <option value="cash">💵 현금</option>
+          <option value="transfer">🏦 계좌이체</option>
+        </select>
+
+        <select class="select-field" id="paymentSortSelect" aria-label="정렬 기준">
+          <option value="recent">최근 결제일순</option>
+          <option value="amount">금액 높은순</option>
+          <option value="name">업체명순</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- 결제 리스트 -->
+    <section class="list-card">
+      <div class="table-scroll">
+        <table class="customer-table" id="paymentTable">
+          <thead>
+            <tr>
+              <th>업체명</th>
+              <th>고객명</th>
+              <th>결제일</th>
+              <th>금액</th>
+              <th>결제 방식</th>
+              <th>상태</th>
+              <th>증빙</th>
+              <th>메모</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody id="paymentTableBody">
+            <!-- JS가 채워 넣음 -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty-state" id="paymentEmptyState" hidden>
+        <p class="empty-title">결제 내역이 없습니다</p>
+        <p class="empty-desc">다른 검색어나 필터 조건을 시도해보세요.</p>
+      </div>
+    </section>
+
+  </section><!-- /#page-payment -->
+
+
+  <!-- ============================================================
+       페이지 3 : 설정
+  ============================================================ -->
+  <section class="page" id="page-settings">
+
+    <header class="page-header">
+      <div class="page-header-left">
+        <button class="icon-btn sidebar-toggle" id="sidebarToggleSettings" type="button" aria-label="메뉴 열기">
+          <span></span><span></span><span></span>
+        </button>
+        <h1>설정</h1>
+      </div>
+    </header>
+
+    <div class="settings-grid">
+
+      <!-- 플랜 템플릿 관리 -->
+      <div class="settings-card settings-card-full">
+        <h3>플랜 템플릿 관리</h3>
+        <p class="settings-desc">사이니지 수량 × 화면당 단가로 월 구독료가 자동 계산돼요. 고객 등록 화면에서 플랜을 선택하면 아래 값이 적용됩니다.</p>
+        <div class="plan-template-list" id="planTemplateList">
+          <!-- JS가 4개 행을 채워 넣음 -->
+        </div>
+        <div class="settings-actions">
+          <button class="btn btn-primary btn-small" id="savePlanTemplatesBtn" type="button">템플릿 저장</button>
+        </div>
+      </div>
+
+      <!-- 관리자 정보 -->
+      <div class="settings-card">
+        <h3>관리자 정보</h3>
+        <label class="field">
+          <span>관리자명</span>
+          <input type="text" id="set_adminName" placeholder="관리자">
+        </label>
+        <label class="field" style="margin-top:12px;">
+          <span>소속팀</span>
+          <input type="text" id="set_teamName" placeholder="운영팀">
+        </label>
+        <div class="settings-actions">
+          <button class="btn btn-primary btn-small" id="saveAdminInfoBtn" type="button">저장</button>
+        </div>
+      </div>
+
+      <!-- 알림 기준 -->
+      <div class="settings-card">
+        <h3>알림 기준</h3>
+        <label class="field">
+          <span>만료 임박 기준일 (D-day)</span>
+          <input type="number" id="set_expiringThreshold" min="1" max="30" step="1">
+        </label>
+        <div class="settings-toggle-row">
+          <span>접속 시 미납 고객 알림</span>
+          <span class="toggle">
+            <input type="checkbox" id="set_notifyOverdue">
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          </span>
+        </div>
+        <div class="settings-actions">
+          <button class="btn btn-primary btn-small" id="saveAlertSettingsBtn" type="button">저장</button>
+        </div>
+      </div>
+
+      <!-- 데이터 관리 -->
+      <div class="settings-card">
+        <h3>데이터 관리</h3>
+        <p class="settings-desc">고객 목록을 CSV 파일로 내보내거나, 전체 데이터를 초기화할 수 있습니다.</p>
+        <div class="settings-actions">
+          <button class="btn btn-secondary btn-small" id="exportCsvBtn" type="button">CSV 내보내기</button>
+          <button class="btn btn-danger-ghost btn-small" id="resetDataBtn" type="button">초기화</button>
+        </div>
+      </div>
+
+      <!-- 시스템 정보 -->
+      <div class="settings-card">
+        <h3>시스템 정보</h3>
+        <div class="stat-row"><span>버전</span><span id="buildVersion">v1.2.0-20260626</span></div>
+        <div class="stat-row"><span>등록된 고객 수</span><span id="stat_totalCustomers">-</span></div>
+        <div class="stat-row"><span>전체 사이니지 수</span><span id="stat_totalScreens">-</span></div>
+        <div class="stat-row"><span>누적 결제 건수</span><span id="stat_totalPayments">-</span></div>
+      </div>
+
+    </div>
+
+  </section><!-- /#page-settings -->
+
+  </main>
+</div>
+
+<!-- 모바일 사이드바 백드롭 -->
+<div class="backdrop" id="sidebarBackdrop"></div>
+
+
+<!-- ============================================================
+     고객 등록 / 수정 모달
+============================================================ -->
+<div class="modal-overlay" id="customerModalOverlay" data-no-backdrop-close>
+  <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="customerModalTitle">
+    <header class="modal-header">
+      <h2 id="customerModalTitle">신규 고객 등록</h2>
+      <button class="icon-btn modal-close" data-close-modal="customerModalOverlay" aria-label="닫기">✕</button>
+    </header>
+
+    <form id="customerForm" class="modal-body" novalidate>
+      <input type="hidden" id="customerId">
+
+      <div class="form-section">
+        <h3 class="form-section-title">기본 정보</h3>
+        <div class="form-grid">
+          <label class="field">
+            <span>업체명 *</span>
+            <input type="text" id="f_store" required placeholder="홍길동식당">
+          </label>
+          <label class="field">
+            <span>고객명 *</span>
+            <input type="text" id="f_name" required placeholder="홍길동">
+          </label>
+          <label class="field">
+            <span>연락처 *</span>
+            <input type="tel" id="f_phone" required placeholder="010-0000-0000">
+          </label>
+          <label class="field">
+            <span>이메일</span>
+            <input type="email" id="f_email" placeholder="example@email.com">
+          </label>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3 class="form-section-title">구독 정보</h3>
+        <div class="form-grid">
+          <label class="field field-full">
+            <span>플랜 템플릿</span>
+            <select id="f_planTemplate">
+              <!-- JS가 채워 넣음 (4개 기본 플랜 + 직접입력) -->
+            </select>
+          </label>
+          <label class="field">
+            <span>플랜명 *</span>
+            <input type="text" id="f_plan" required placeholder="스탠다드 플랜">
+          </label>
+          <label class="field">
+            <span>월 구독료 *</span>
+            <input type="number" id="f_monthlyFee" required min="0" step="1" placeholder="50000">
+          </label>
+          <label class="field">
+            <span>등록 화면 수</span>
+            <input type="number" id="f_screenCount" min="0" step="1" placeholder="1">
+          </label>
+          <label class="field">
+            <span>결제 방식 *</span>
+            <select id="f_paymentMethod" required>
+              <option value="card">💳 신용카드</option>
+              <option value="tax_invoice">🧾 전자세금계산서</option>
+              <option value="cash">💵 현금</option>
+              <option value="transfer">🏦 계좌이체</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>결제 상태 *</span>
+            <select id="f_paymentStatus" required>
+              <option value="paid">결제완료</option>
+              <option value="unpaid">미결제</option>
+              <option value="pending">확인중</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>구독 상태 *</span>
+            <select id="f_subscriptionStatus" required>
+              <option value="active">이용 중</option>
+              <option value="expiring">만료 예정</option>
+              <option value="overdue">미납</option>
+              <option value="suspended">이용 정지</option>
+              <option value="cancelled">해지</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>시작일 *</span>
+            <input type="date" id="f_startDate" required>
+          </label>
+          <label class="field">
+            <span>종료일 *</span>
+            <input type="date" id="f_endDate" required>
+          </label>
+          <label class="field">
+            <span>다음 결제일</span>
+            <input type="date" id="f_nextPaymentDate">
+          </label>
+          <label class="field field-toggle">
+            <span>자동연장 여부</span>
+            <span class="toggle">
+              <input type="checkbox" id="f_autoRenew">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3 class="form-section-title">사업자 / 세금계산서 정보</h3>
+        <div class="form-grid">
+          <label class="field">
+            <span>사업자명</span>
+            <input type="text" id="f_businessName" placeholder="(주)홍길동상회">
+          </label>
+          <label class="field">
+            <span>사업자등록번호</span>
+            <input type="text" id="f_businessNumber" placeholder="000-00-00000">
+          </label>
+          <label class="field">
+            <span>세금계산서 이메일</span>
+            <input type="email" id="f_taxEmail" placeholder="tax@email.com">
+          </label>
+          <label class="field">
+            <span>입금자명</span>
+            <input type="text" id="f_depositorName" placeholder="입금자명">
+          </label>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3 class="form-section-title">메모</h3>
+        <label class="field field-full">
+          <textarea id="f_memo" rows="3" placeholder="특이사항을 입력하세요"></textarea>
+        </label>
+      </div>
+    </form>
+
+    <footer class="modal-footer">
+      <button class="btn btn-ghost" type="button" data-close-modal="customerModalOverlay">취소</button>
+      <button class="btn btn-primary" type="submit" form="customerForm" id="customerSaveBtn">저장</button>
+    </footer>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     고객 상세 / 결제 내역 Side Drawer
+============================================================ -->
+<div class="modal-overlay drawer-overlay" id="detailDrawerOverlay">
+  <div class="drawer" role="dialog" aria-modal="true" aria-labelledby="detailDrawerTitle">
+    <header class="modal-header">
+      <h2 id="detailDrawerTitle">고객 상세</h2>
+      <button class="icon-btn modal-close" data-close-modal="detailDrawerOverlay" aria-label="닫기">✕</button>
+    </header>
+
+    <div class="drawer-body">
+      <!-- 고객 요약 -->
+      <div class="detail-profile" id="detailProfile">
+        <!-- JS가 채워 넣음 -->
+      </div>
+
+      <div class="detail-actions">
+        <button class="btn btn-secondary" id="detailEditBtn" type="button">정보 수정</button>
+        <button class="btn btn-danger-ghost" id="detailDeleteBtn" type="button">고객 삭제</button>
+      </div>
+
+      <div class="detail-divider"></div>
+
+      <!-- 결제 내역 -->
+      <div class="detail-payments-header">
+        <h3>결제 내역</h3>
+        <button class="btn btn-small btn-secondary" id="viewInPaymentPageBtn" type="button">결제관리에서 보기 →</button>
+      </div>
+      <p class="payment-hint">결제 추가·수정·삭제는 결제관리 페이지에서 할 수 있어요.</p>
+
+      <ul class="payment-history-list" id="paymentHistoryList">
+        <!-- JS가 채워 넣음 -->
+      </ul>
+      <p class="empty-payment-msg" id="emptyPaymentMsg" hidden>등록된 결제 내역이 없습니다.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     결제 추가 / 수정 모달
+============================================================ -->
+<div class="modal-overlay" id="paymentModalOverlay" data-no-backdrop-close>
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="paymentModalTitle">
+    <header class="modal-header">
+      <h2 id="paymentModalTitle">결제 추가</h2>
+      <button class="icon-btn modal-close" data-close-modal="paymentModalOverlay" aria-label="닫기">✕</button>
+    </header>
+
+    <form id="paymentForm" class="modal-body" novalidate>
+      <input type="hidden" id="p_id">
+
+      <div class="form-grid">
+        <label class="field field-full">
+          <span>고객 선택 *</span>
+          <select id="p_customerId" required></select>
+        </label>
+        <label class="field">
+          <span>결제일 *</span>
+          <input type="date" id="p_date" required>
+        </label>
+        <label class="field">
+          <span>금액 *</span>
+          <input type="number" id="p_amount" required min="0" step="1">
+        </label>
+        <label class="field">
+          <span>결제방식 *</span>
+          <select id="p_method" required>
+            <option value="card">💳 신용카드</option>
+            <option value="tax_invoice">🧾 전자세금계산서</option>
+            <option value="cash">💵 현금</option>
+            <option value="transfer">🏦 계좌이체</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>상태 *</span>
+          <select id="p_status" required>
+            <option value="completed">완료</option>
+            <option value="pending">대기</option>
+            <option value="failed">실패</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>증빙</span>
+          <input type="text" id="p_receipt" placeholder="세금계산서 번호 / 영수증 번호">
+        </label>
+        <label class="field field-full">
+          <span>메모</span>
+          <input type="text" id="p_memo" placeholder="메모">
+        </label>
+      </div>
+    </form>
+
+    <footer class="modal-footer">
+      <button class="btn btn-ghost" type="button" data-close-modal="paymentModalOverlay">취소</button>
+      <button class="btn btn-primary" type="submit" form="paymentForm">저장</button>
+    </footer>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     삭제 확인 Dialog
+============================================================ -->
+<div class="modal-overlay" id="confirmDialogOverlay">
+  <div class="confirm-dialog" role="alertdialog" aria-modal="true">
+    <p class="confirm-title" id="confirmTitle">정말 삭제하시겠습니까?</p>
+    <p class="confirm-desc" id="confirmDesc">이 작업은 되돌릴 수 없습니다.</p>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost" id="confirmCancelBtn" type="button">취소</button>
+      <button class="btn btn-danger" id="confirmOkBtn" type="button">삭제</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- 로딩 오버레이 -->
+<div class="loading-overlay" id="loadingOverlay" hidden>
+  <div class="spinner"></div>
+</div>
+
+<!-- 토스트 컨테이너 -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* ============================================================
+   구독관리 어드민 — script.js
+   ------------------------------------------------------------
+   섹션 구성
+   1. 상태 (State)
+   2. 유틸리티 함수
+   3. 샘플 데이터
+   4. 렌더링 함수 (4-B 페이지 전환, 4-C 결제관리, 4-D 설정)
+   5. 고객 CRUD
+   6. 결제내역 CRUD
+   7. 공통 UI (모달 / 토스트 / 로딩 / 삭제확인)
+   8. 이벤트 바인딩
+   9. 초기화
+============================================================ */
+'use strict';
+
+console.log('%c구독관리 어드민 build: v1.2.0-20260626', 'color:#007AFF;font-weight:bold;font-size:14px;');
+
+/* ============================================================
+   1. 상태 (State)
+============================================================ */
+let customers = [];          // 전체 고객 목록 (DB 역할)
+let activeDetailId = null;   // 현재 상세 드로어에 열려있는 고객 id
+let pendingConfirm = null;   // 삭제 확인 dialog 에서 실행할 콜백
+let currentPage = 'dashboard'; // dashboard | subscription | payment | settings
+
+const filterState = {
+  search: '',
+  status: 'all',     // all | active | expiring | overdue | suspended | cancelled
+  payment: 'all',    // all | card | tax_invoice | cash | transfer
+  sort: 'recent',    // recent | expiry | nextPayment | name
+};
+
+// 결제관리 페이지 전용 필터 상태
+const paymentFilterState = {
+  search: '',
+  status: 'all',   // all | completed | pending | failed
+  method: 'all',   // all | card | tax_invoice | cash | transfer
+  sort: 'recent',  // recent | amount | name
+};
+
+// 어드민 환경설정 (설정 페이지에서 변경)
+const appSettings = {
+  adminName: '관리자',
+  teamName: '운영팀',
+  expiringSoonThreshold: 7,   // 남은 기간이 이 값(일) 이하이면 'is-soon' 강조
+  notifyOverdueOnLoad: true,  // 접속 시 미납 고객 토스트 알림 여부
+};
+// 초기 기본값을 따로 저장해둠 — "샘플 데이터 초기화" 시 이 값으로 되돌리기 위함
+const DEFAULT_APP_SETTINGS = { ...appSettings };
+
+/* ============================================================
+   2. 유틸리티 함수
+============================================================ */
+
+// 고객/결제 고유 id 생성
+function generateId(prefix) {
+  return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+}
+
+// 오늘 날짜를 YYYY-MM-DD 형식으로
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// 1,000 단위 콤마 + 원 표시
+function formatCurrency(num) {
+  if (num === null || num === undefined || isNaN(num)) return '-';
+  return Number(num).toLocaleString('ko-KR') + '원';
+}
+
+// YYYY-MM-DD → YYYY.MM.DD
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  return dateStr.replaceAll('-', '.');
+}
+
+// 종료일까지 남은 일수 (음수면 이미 만료됨)
+function remainingDays(endDate) {
+  if (!endDate) return null;
+  const end = new Date(endDate + 'T00:00:00');
+  const now = new Date(todayStr() + 'T00:00:00');
+  return Math.round((end - now) / (1000 * 60 * 60 * 24));
+}
+
+// 기준 날짜에 N개월을 더한 YYYY-MM-DD 반환 (플랜 템플릿의 종료일/다음결제일 자동계산용)
+function addMonths(dateStr, months) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().slice(0, 10);
+}
+
+// 결제방식 메타 정보 (아이콘 / 라벨 / 뱃지 색상)
+const PAYMENT_META = {
+  card:        { icon: '💳', label: '신용카드',        badge: 'badge-blue' },
+  tax_invoice: { icon: '🧾', label: '전자세금계산서',  badge: 'badge-purple' },
+  cash:        { icon: '💵', label: '현금',            badge: 'badge-green' },
+  transfer:    { icon: '🏦', label: '계좌이체',        badge: 'badge-orange' },
+};
+
+// 구독상태 메타 정보 (라벨 / 뱃지 색상)
+const STATUS_META = {
+  active:    { label: '이용 중',   badge: 'badge-green' },
+  expiring:  { label: '만료 예정', badge: 'badge-orange' },
+  overdue:   { label: '미납',      badge: 'badge-red' },
+  suspended: { label: '이용 정지', badge: 'badge-red' },
+  cancelled: { label: '해지',      badge: 'badge-gray' },
+};
+
+// 결제상태(결제완료/미결제/확인중) 메타 정보
+const PAYMENT_STATUS_META = {
+  paid:   { label: '결제완료', badge: 'badge-green' },
+  unpaid: { label: '미결제',   badge: 'badge-red' },
+  pending:{ label: '확인중',   badge: 'badge-orange' },
+};
+
+// 결제 내역(개별 결제건)의 상태 메타 정보 — 결제관리 페이지에서 사용
+const PAYMENT_RECORD_STATUS_META = {
+  completed: { label: '완료', badge: 'badge-green' },
+  pending:   { label: '대기', badge: 'badge-orange' },
+  failed:    { label: '실패', badge: 'badge-red' },
+};
+
+// 기본 플랜 템플릿 (4종) — 화면당 단가 × 사이니지 수량으로 월 구독료가 계산됨
+// 설정 페이지에서 값을 수정할 수 있음 (mutable)
+const PLAN_TEMPLATES = [
+  { id: 'basic',      name: '베이직 플랜',      pricePerScreen: 39000, defaultScreenCount: 1, durationMonths: 1 },
+  { id: 'standard',   name: '스탠다드 플랜',    pricePerScreen: 29500, defaultScreenCount: 2, durationMonths: 12 },
+  { id: 'premium',    name: '프리미엄 플랜',    pricePerScreen: 22250, defaultScreenCount: 4, durationMonths: 12 },
+  { id: 'enterprise', name: '엔터프라이즈 플랜', pricePerScreen: 18625, defaultScreenCount: 8, durationMonths: 24 },
+];
+// 초기 기본값을 따로 저장해둠 — "샘플 데이터 초기화" 시 이 값으로 되돌리기 위함
+const DEFAULT_PLAN_TEMPLATES = PLAN_TEMPLATES.map(t => ({ ...t }));
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+}
+
+/* ============================================================
+   3. 샘플 데이터 (최소 10명, 다양한 상태/결제방식 포함)
+============================================================ */
+function seedData() {
+  customers = [
+    mkCustomer({
+      name: '김민준', store: '민준돈까스', phone: '010-1234-5671', email: 'minjun@store.com',
+      plan: '스탠다드 플랜', monthlyFee: 59000, screenCount: 2,
+      paymentMethod: 'card', paymentStatus: 'paid', subscriptionStatus: 'active',
+      startDate: '2026-01-10', endDate: '2026-09-10', nextPaymentDate: '2026-07-10', autoRenew: true,
+      memo: 'VIP 고객, 화면 2대 추가 설치',
+      payments: [
+        { date: '2026-06-10', amount: 59000, method: 'card', status: 'completed', receipt: 'CARD-99231', memo: '정상 결제' },
+        { date: '2026-05-10', amount: 59000, method: 'card', status: 'completed', receipt: 'CARD-98810', memo: '' },
+      ],
+    }),
+    mkCustomer({
+      name: '이서연', store: '서연카페', phone: '010-2345-6712', email: 'seoyeon@cafe.com',
+      plan: '프리미엄 플랜', monthlyFee: 89000, screenCount: 3,
+      paymentMethod: 'tax_invoice', paymentStatus: 'paid', subscriptionStatus: 'active',
+      startDate: '2025-12-01', endDate: '2026-08-01', nextPaymentDate: '2026-07-01', autoRenew: true,
+      businessName: '서연카페(주)', businessNumber: '214-12-34567', taxEmail: 'tax@seoyeoncafe.com',
+      memo: '세금계산서 매월 1일 발행 요청',
+      payments: [
+        { date: '2026-06-01', amount: 89000, method: 'tax_invoice', status: 'completed', receipt: 'TI-2026-0601', memo: '' },
+      ],
+    }),
+    mkCustomer({
+      name: '박지훈', store: '지훈치킨', phone: '010-3456-7123', email: 'jihoon@chicken.com',
+      plan: '베이직 플랜', monthlyFee: 39000, screenCount: 1,
+      paymentMethod: 'cash', paymentStatus: 'paid', subscriptionStatus: 'expiring',
+      startDate: '2025-07-02', endDate: '2026-07-02', nextPaymentDate: '2026-07-02', autoRenew: false,
+      memo: '재계약 의사 확인 필요',
+      payments: [
+        { date: '2026-06-02', amount: 39000, method: 'cash', status: 'completed', receipt: '현금영수증-5521', memo: '' },
+      ],
+    }),
+    mkCustomer({
+      name: '최유진', store: '유진분식', phone: '010-4567-8123', email: 'yujin@bunsik.com',
+      plan: '스탠다드 플랜', monthlyFee: 59000, screenCount: 2,
+      paymentMethod: 'transfer', paymentStatus: 'pending', subscriptionStatus: 'expiring',
+      startDate: '2025-06-30', endDate: '2026-06-30', nextPaymentDate: '2026-06-30', autoRenew: false,
+      depositorName: '최유진',
+      memo: '입금 확인 대기 중',
+      payments: [
+        { date: '2026-05-30', amount: 59000, method: 'transfer', status: 'completed', receipt: '계좌이체-7710', memo: '' },
+      ],
+    }),
+    mkCustomer({
+      name: '정도윤', store: '도윤국밥', phone: '010-5678-9123', email: 'doyoon@gukbap.com',
+      plan: '베이직 플랜', monthlyFee: 39000, screenCount: 1,
+      paymentMethod: 'card', paymentStatus: 'unpaid', subscriptionStatus: 'overdue',
+      startDate: '2025-06-10', endDate: '2026-06-10', nextPaymentDate: '2026-06-10', autoRenew: true,
+      memo: '카드 자동결제 실패, 재시도 필요',
+      payments: [
+        { date: '2026-05-10', amount: 39000, method: 'card', status: 'completed', receipt: 'CARD-77120', memo: '' },
+        { date: '2026-06-10', amount: 39000, method: 'card', status: 'failed', receipt: 'CARD-77631', memo: '카드 한도 초과' },
+      ],
+    }),
+    mkCustomer({
+      name: '강하은', store: '하은베이커리', phone: '010-6789-1234', email: 'haeun@bakery.com',
+      plan: '프리미엄 플랜', monthlyFee: 89000, screenCount: 3,
+      paymentMethod: 'tax_invoice', paymentStatus: 'unpaid', subscriptionStatus: 'overdue',
+      startDate: '2025-06-01', endDate: '2026-06-01', nextPaymentDate: '2026-06-01', autoRenew: false,
+      businessName: '하은베이커리', businessNumber: '301-22-11234', taxEmail: 'acc@haeunbakery.com',
+      memo: '세금계산서 미발행 상태, 담당자 연락 필요',
+      payments: [],
+    }),
+    mkCustomer({
+      name: '윤서준', store: '서준곱창', phone: '010-7891-2345', email: 'seojun@gopchang.com',
+      plan: '베이직 플랜', monthlyFee: 39000, screenCount: 1,
+      paymentMethod: 'cash', paymentStatus: 'unpaid', subscriptionStatus: 'suspended',
+      startDate: '2025-05-15', endDate: '2026-05-15', nextPaymentDate: '2026-05-15', autoRenew: false,
+      memo: '2개월 연속 미납으로 서비스 일시정지',
+      payments: [
+        { date: '2026-03-15', amount: 39000, method: 'cash', status: 'completed', receipt: '', memo: '' },
+      ],
+    }),
+    mkCustomer({
+      name: '임지우', store: '지우떡볶이', phone: '010-8912-3456', email: 'jiwoo@tteok.com',
+      plan: '스탠다드 플랜', monthlyFee: 59000, screenCount: 2,
+      paymentMethod: 'transfer', paymentStatus: 'unpaid', subscriptionStatus: 'suspended',
+      startDate: '2025-05-01', endDate: '2026-05-01', nextPaymentDate: '2026-05-01', autoRenew: false,
+      depositorName: '임지우',
+      memo: '연락 두절, 해지 검토 대상',
+      payments: [],
+    }),
+    mkCustomer({
+      name: '한소율', store: '소율삼겹살', phone: '010-9123-4567', email: 'soyul@samgyeop.com',
+      plan: '프리미엄 플랜', monthlyFee: 89000, screenCount: 4,
+      paymentMethod: 'card', paymentStatus: 'paid', subscriptionStatus: 'cancelled',
+      startDate: '2025-04-20', endDate: '2026-04-20', nextPaymentDate: '', autoRenew: false,
+      memo: '매장 폐업으로 자진 해지',
+      payments: [
+        { date: '2026-04-20', amount: 89000, method: 'card', status: 'completed', receipt: 'CARD-50012', memo: '마지막 결제' },
+      ],
+    }),
+    mkCustomer({
+      name: '오은우', store: '은우초밥', phone: '010-1112-2223', email: 'eunwoo@sushi.com',
+      plan: '프리미엄 플랜', monthlyFee: 99000, screenCount: 4,
+      paymentMethod: 'tax_invoice', paymentStatus: 'paid', subscriptionStatus: 'active',
+      startDate: '2025-12-01', endDate: '2026-12-01', nextPaymentDate: '2026-07-01', autoRenew: true,
+      businessName: '은우초밥(주)', businessNumber: '108-81-22334', taxEmail: 'tax@eunwoosushi.com',
+      memo: '신규 매장 추가 예정, 견적 발송함',
+      payments: [
+        { date: '2026-06-01', amount: 99000, method: 'tax_invoice', status: 'completed', receipt: 'TI-2026-0033', memo: '' },
+      ],
+    }),
+    mkCustomer({
+      name: '신예준', store: '예준국수', phone: '010-3334-4445', email: 'yejun@noodle.com',
+      plan: '스탠다드 플랜', monthlyFee: 59000, screenCount: 2,
+      paymentMethod: 'cash', paymentStatus: 'paid', subscriptionStatus: 'active',
+      startDate: '2025-10-15', endDate: '2026-10-15', nextPaymentDate: '2026-07-15', autoRenew: true,
+      memo: '',
+      payments: [
+        { date: '2026-06-15', amount: 59000, method: 'cash', status: 'completed', receipt: '현금영수증-8821', memo: '' },
+      ],
+    }),
+    mkCustomer({
+      name: '배수아', store: '수아피자', phone: '010-5556-6667', email: 'sua@pizza.com',
+      plan: '스탠다드 플랜', monthlyFee: 69000, screenCount: 2,
+      paymentMethod: 'transfer', paymentStatus: 'paid', subscriptionStatus: 'expiring',
+      startDate: '2025-07-05', endDate: '2026-07-05', nextPaymentDate: '2026-07-05', autoRenew: true,
+      depositorName: '배수아',
+      memo: '재계약 의향 있음, 견적 재발송 필요 없음',
+      payments: [
+        { date: '2026-06-05', amount: 69000, method: 'transfer', status: 'completed', receipt: '계좌이체-9012', memo: '' },
+      ],
+    }),
+  ];
+}
+
+// 고객 객체 생성 헬퍼 (createdAt, id, paymentHistory 자동 부여)
+function mkCustomer(data) {
+  const id = generateId('cust');
+  const payments = (data.payments || []).map(p => ({ id: generateId('pay'), ...p }));
+  delete data.payments;
+  return {
+    id,
+    createdAt: data.startDate || todayStr(),
+    paymentHistory: payments,
+    ...data,
+  };
+}
+
+/* ============================================================
+   4. 렌더링 함수
+============================================================ */
+
+// 요약 카드 데이터 계산 + 렌더링
+function renderSummary() {
+  const total = customers.length;
+  const countBy = (status) => customers.filter(c => c.subscriptionStatus === status).length;
+
+  const active = countBy('active');
+  const expiring = countBy('expiring');
+  const overdue = countBy('overdue');
+  const suspended = countBy('suspended');
+
+  // 이번 달 매출 = 정상 이용 중인(active+expiring) 고객의 월 구독료 합
+  const monthlyRevenue = customers
+    .filter(c => ['active', 'expiring'].includes(c.subscriptionStatus))
+    .reduce((sum, c) => sum + Number(c.monthlyFee || 0), 0);
+
+  // 미수금 = 미납 상태 고객의 월 구독료 합
+  const unpaidAmount = customers
+    .filter(c => c.subscriptionStatus === 'overdue')
+    .reduce((sum, c) => sum + Number(c.monthlyFee || 0), 0);
+
+  const cards = [
+    { icon: '👥', cls: 'icon-blue',  value: `${total}명`, label: '전체 고객' },
+    { icon: '✓',  cls: 'icon-green', value: `${active}명`, label: '이용 중' },
+    { icon: '⏰', cls: 'icon-orange',value: `${expiring}명`, label: '만료 예정' },
+    { icon: '!',  cls: 'icon-red',   value: `${overdue}명`, label: '미납' },
+    { icon: '⛔', cls: 'icon-red',   value: `${suspended}명`, label: '이용 정지' },
+    { icon: '₩',  cls: 'icon-purple',value: formatCurrency(monthlyRevenue), label: '이번 달 매출' },
+    { icon: '⚠',  cls: 'icon-gray',  value: formatCurrency(unpaidAmount), label: '미수금' },
+  ];
+
+  const grid = document.getElementById('summaryGrid');
+  grid.innerHTML = cards.map(c => `
+    <div class="summary-card">
+      <div class="s-icon ${c.cls}">${c.icon}</div>
+      <div class="s-value">${c.value}</div>
+      <div class="s-label">${c.label}</div>
+    </div>
+  `).join('');
+}
+
+// 검색 + 필터 + 정렬이 모두 적용된 고객 목록 반환
+function getVisibleCustomers() {
+  let list = customers.slice();
+
+  // 검색 (업체명, 고객명, 연락처, 이메일, 메모)
+  const q = filterState.search.trim().toLowerCase();
+  if (q) {
+    list = list.filter(c =>
+      [c.name, c.store, c.phone, c.email, c.memo]
+        .some(field => (field || '').toLowerCase().includes(q))
+    );
+  }
+
+  // 구독 상태 필터
+  if (filterState.status !== 'all') {
+    list = list.filter(c => c.subscriptionStatus === filterState.status);
+  }
+
+  // 결제 방식 필터
+  if (filterState.payment !== 'all') {
+    list = list.filter(c => c.paymentMethod === filterState.payment);
+  }
+
+  // 정렬
+  switch (filterState.sort) {
+    case 'expiry':
+      list.sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+      break;
+    case 'nextPayment':
+      list.sort((a, b) => new Date(a.nextPaymentDate || '9999-12-31') - new Date(b.nextPaymentDate || '9999-12-31'));
+      break;
+    case 'name':
+      list.sort((a, b) => a.store.localeCompare(b.store, 'ko'));
+      break;
+    default: // recent
+      list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }
+
+  return list;
+}
+
+// 결제방식 뱃지 HTML
+function paymentBadgeHtml(method) {
+  const meta = PAYMENT_META[method];
+  if (!meta) return '-';
+  return `<span class="badge ${meta.badge}">${meta.icon} ${meta.label}</span>`;
+}
+
+// 구독상태 뱃지 HTML
+function statusBadgeHtml(status) {
+  const meta = STATUS_META[status];
+  if (!meta) return '-';
+  return `<span class="badge ${meta.badge}">${meta.label}</span>`;
+}
+
+// 구독상태 색상 점 (badge 색상과 동일한 매핑) — 고객명 앞에 붙여서 상태를 한눈에 보이게 함
+const STATUS_DOT_COLOR = {
+  active: 'green', expiring: 'orange', overdue: 'red', suspended: 'red', cancelled: 'gray',
+};
+function statusDotHtml(status) {
+  const color = STATUS_DOT_COLOR[status] || 'gray';
+  const label = STATUS_META[status]?.label || '';
+  return `<span class="status-dot status-dot-${color}" title="${label}"></span>`;
+}
+
+// 결제상태 뱃지 HTML
+function paymentStatusBadgeHtml(status) {
+  const meta = PAYMENT_STATUS_META[status];
+  if (!meta) return '-';
+  return `<span class="badge ${meta.badge}">${meta.label}</span>`;
+}
+
+// 남은 기간 텍스트 + 강조 클래스
+function remainingDaysHtml(endDate) {
+  const days = remainingDays(endDate);
+  if (days === null) return '-';
+  if (days < 0) return `<span class="cell-days is-urgent">만료 ${Math.abs(days)}일 경과</span>`;
+  if (days <= appSettings.expiringSoonThreshold) return `<span class="cell-days is-soon">D-${days}</span>`;
+  return `<span class="cell-days">D-${days}</span>`;
+}
+
+// 고객 테이블 렌더링
+function renderTable() {
+  const list = getVisibleCustomers();
+  const tbody = document.getElementById('customerTableBody');
+  const emptyState = document.getElementById('emptyState');
+
+  if (list.length === 0) {
+    tbody.innerHTML = '';
+    const isFiltering = filterState.search.trim() !== '' || filterState.status !== 'all' || filterState.payment !== 'all';
+    document.querySelector('#emptyState .empty-title').textContent = isFiltering ? '검색 결과가 없습니다' : '등록된 고객이 없습니다';
+    document.querySelector('#emptyState .empty-desc').textContent = isFiltering ? '다른 검색어나 필터 조건을 시도해보세요.' : "'+ 신규 등록' 버튼으로 첫 고객을 등록해보세요.";
+    emptyState.hidden = false;
+    return;
+  }
+  emptyState.hidden = true;
+
+  tbody.innerHTML = list.map(c => `
+    <tr data-id="${c.id}">
+      <td data-label="업체명">
+        <span class="cell-name">${statusDotHtml(c.subscriptionStatus)}${escapeHtml(c.store)}</span>
+      </td>
+      <td data-label="고객명">${escapeHtml(c.name)}</td>
+      <td data-label="연락처">${escapeHtml(c.phone)}</td>
+      <td data-label="플랜">${escapeHtml(c.plan)}</td>
+      <td data-label="사이니지 수">${c.screenCount || 0}대</td>
+      <td data-label="월 구독료">${formatCurrency(c.monthlyFee)}</td>
+      <td data-label="결제 방식">${paymentBadgeHtml(c.paymentMethod)}</td>
+      <td data-label="결제 상태">${paymentStatusBadgeHtml(c.paymentStatus)}</td>
+      <td data-label="구독 상태">${statusBadgeHtml(c.subscriptionStatus)}</td>
+      <td data-label="시작일">${formatDate(c.startDate)}</td>
+      <td data-label="만료일">${formatDate(c.endDate)}</td>
+      <td data-label="다음 결제일">${formatDate(c.nextPaymentDate)}</td>
+      <td data-label="남은 기간">${remainingDaysHtml(c.endDate)}</td>
+      <td data-label="메모"><span class="cell-memo" title="${escapeHtml(c.memo)}">${escapeHtml(c.memo) || '-'}</span></td>
+      <td data-label="관리">
+        <div class="row-actions">
+          <button class="icon-btn act-detail" data-id="${c.id}" title="상세보기">◎</button>
+          <button class="icon-btn act-edit" data-id="${c.id}" title="수정">✎</button>
+          <button class="icon-btn act-delete" data-id="${c.id}" title="삭제">🗑</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderAll() {
+  renderSummary();
+  renderTable();
+}
+
+/* ============================================================
+   4-B. 페이지 전환 (구독관리 / 결제관리 / 설정)
+============================================================ */
+function switchPage(page) {
+  currentPage = page;
+
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('is-active'));
+  document.getElementById(`page-${page}`).classList.add('is-active');
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.toggle('is-active', item.dataset.page === page);
+  });
+
+  // 모바일에서 메뉴 선택 시 사이드바 닫기
+  document.getElementById('sidebar').classList.remove('is-open');
+  document.getElementById('sidebarBackdrop').classList.remove('is-visible');
+
+  if (page === 'dashboard') renderDashboardPage();
+  if (page === 'subscription') renderAll();
+  if (page === 'payment') renderPaymentPage();
+  if (page === 'settings') renderSettingsPage();
+}
+
+/* ============================================================
+   4-A2. Dashboard 페이지
+============================================================ */
+function renderDashboardPage() {
+  renderDashboardSummary();
+  renderDistributionCharts();
+  renderDashboardLists();
+}
+
+// 전체 요약 카드 (구독관리 요약카드와 동일한 계산식 재사용)
+function renderDashboardSummary() {
+  const total = customers.length;
+  const countBy = (status) => customers.filter(c => c.subscriptionStatus === status).length;
+  const active = countBy('active');
+  const expiring = countBy('expiring');
+  const overdue = countBy('overdue');
+
+  const monthlyRevenue = customers
+    .filter(c => ['active', 'expiring'].includes(c.subscriptionStatus))
+    .reduce((sum, c) => sum + Number(c.monthlyFee || 0), 0);
+  const totalScreens = customers.reduce((sum, c) => sum + Number(c.screenCount || 0), 0);
+
+  const cards = [
+    { icon: '👥', cls: 'icon-blue',   value: `${total}명`, label: '전체 고객' },
+    { icon: '✓',  cls: 'icon-green',  value: `${active}명`, label: '이용 중' },
+    { icon: '⏰', cls: 'icon-orange', value: `${expiring}명`, label: '만료 예정' },
+    { icon: '!',  cls: 'icon-red',    value: `${overdue}명`, label: '미납' },
+    { icon: '₩',  cls: 'icon-purple', value: formatCurrency(monthlyRevenue), label: '이번 달 매출' },
+    { icon: '▦',  cls: 'icon-gray',   value: `${totalScreens}대`, label: '전체 사이니지 수' },
+  ];
+
+  document.getElementById('dashboardSummaryGrid').innerHTML = cards.map(c => `
+    <div class="summary-card">
+      <div class="s-icon ${c.cls}">${c.icon}</div>
+      <div class="s-value">${c.value}</div>
+      <div class="s-label">${c.label}</div>
+    </div>
+  `).join('');
+}
+
+// 구독상태 / 결제방식 분포 바 차트
+function renderDistributionCharts() {
+  const total = customers.length || 1;
+
+  const statusBarColor = { active: 'var(--success)', expiring: 'var(--warning)', overdue: 'var(--danger)', suspended: 'var(--danger)', cancelled: 'var(--gray-3)' };
+  const statusRows = Object.keys(STATUS_META).map(key => {
+    const count = customers.filter(c => c.subscriptionStatus === key).length;
+    const pct = Math.round((count / total) * 100);
+    return `
+      <div class="dist-row">
+        <div class="dist-label">${statusBadgeHtml(key)}</div>
+        <div class="dist-bar-track"><div class="dist-bar-fill" style="width:${pct}%; background:${statusBarColor[key]};"></div></div>
+        <div class="dist-count">${count}명</div>
+      </div>`;
+  }).join('');
+  document.getElementById('distStatus').innerHTML = statusRows;
+
+  const paymentBarColor = { card: 'var(--primary)', tax_invoice: 'var(--purple)', cash: 'var(--success)', transfer: 'var(--warning)' };
+  const paymentRows = Object.keys(PAYMENT_META).map(key => {
+    const count = customers.filter(c => c.paymentMethod === key).length;
+    const pct = Math.round((count / total) * 100);
+    return `
+      <div class="dist-row">
+        <div class="dist-label">${paymentBadgeHtml(key)}</div>
+        <div class="dist-bar-track"><div class="dist-bar-fill" style="width:${pct}%; background:${paymentBarColor[key]};"></div></div>
+        <div class="dist-count">${count}명</div>
+      </div>`;
+  }).join('');
+  document.getElementById('distPayment').innerHTML = paymentRows;
+}
+
+// 만료 임박 / 미납 고객 리스트
+function renderDashboardLists() {
+  // 만료 임박 (해지 제외, 남은 기간 0~30일, 적은 순)
+  const expiringSoon = customers
+    .filter(c => c.subscriptionStatus !== 'cancelled')
+    .map(c => ({ customer: c, days: remainingDays(c.endDate) }))
+    .filter(c => c.days !== null && c.days >= 0 && c.days <= 30)
+    .sort((a, b) => a.days - b.days)
+    .slice(0, 5);
+
+  const expiringListEl = document.getElementById('dashExpiringList');
+  const expiringEmptyEl = document.getElementById('dashExpiringEmpty');
+  if (expiringSoon.length === 0) {
+    expiringListEl.innerHTML = '';
+    expiringEmptyEl.hidden = false;
+  } else {
+    expiringEmptyEl.hidden = true;
+    expiringListEl.innerHTML = expiringSoon.map(({ customer: c }) => `
+      <li class="dash-list-item" data-customer-id="${c.id}">
+        <div class="dli-main">
+          <span class="dli-name">${statusDotHtml(c.subscriptionStatus)}${escapeHtml(c.store)}</span>
+          <span class="dli-meta">${escapeHtml(c.name)} · ${formatCurrency(c.monthlyFee)}</span>
+        </div>
+        <span class="dli-right">${remainingDaysHtml(c.endDate)}</span>
+      </li>
+    `).join('');
+  }
+
+  // 미납 (남은 기간 적은(많이 지난) 순)
+  const overdue = customers
+    .filter(c => c.subscriptionStatus === 'overdue')
+    .map(c => ({ customer: c, days: remainingDays(c.endDate) }))
+    .sort((a, b) => a.days - b.days)
+    .slice(0, 6);
+
+  const overdueListEl = document.getElementById('dashOverdueList');
+  const overdueEmptyEl = document.getElementById('dashOverdueEmpty');
+  if (overdue.length === 0) {
+    overdueListEl.innerHTML = '';
+    overdueEmptyEl.hidden = false;
+  } else {
+    overdueEmptyEl.hidden = true;
+    overdueListEl.innerHTML = overdue.map(({ customer: c }) => `
+      <li class="dash-list-item" data-customer-id="${c.id}">
+        <div class="dli-main">
+          <span class="dli-name">${statusDotHtml(c.subscriptionStatus)}${escapeHtml(c.store)}</span>
+          <span class="dli-meta">${escapeHtml(c.name)} · ${formatCurrency(c.monthlyFee)}</span>
+        </div>
+        <span class="dli-right">${remainingDaysHtml(c.endDate)}</span>
+      </li>
+    `).join('');
+  }
+}
+
+// 전체 고객의 결제내역을 고객 정보와 함께 1차원 배열로 변환
+function getAllPayments() {
+  const list = [];
+  customers.forEach(c => {
+    (c.paymentHistory || []).forEach(p => {
+      list.push({ ...p, customerId: c.id, customerName: c.name, customerStore: c.store, customerStatus: c.subscriptionStatus });
+    });
+  });
+  return list;
+}
+
+// 결제관리 요약 카드
+function renderPaymentSummary() {
+  const all = getAllPayments();
+  const thisMonth = todayStr().slice(0, 7); // YYYY-MM
+
+  const monthlyTotal = all
+    .filter(p => p.status === 'completed' && (p.date || '').startsWith(thisMonth))
+    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+  const countBy = (status) => all.filter(p => p.status === status).length;
+
+  const cards = [
+    { icon: '₩', cls: 'icon-purple', value: formatCurrency(monthlyTotal), label: '이번 달 결제 금액' },
+    { icon: '✓', cls: 'icon-green',  value: `${countBy('completed')}건`, label: '완료' },
+    { icon: '⏳', cls: 'icon-orange', value: `${countBy('pending')}건`, label: '대기' },
+    { icon: '✕', cls: 'icon-red',    value: `${countBy('failed')}건`, label: '실패' },
+  ];
+
+  document.getElementById('paymentSummaryGrid').innerHTML = cards.map(c => `
+    <div class="summary-card">
+      <div class="s-icon ${c.cls}">${c.icon}</div>
+      <div class="s-value">${c.value}</div>
+      <div class="s-label">${c.label}</div>
+    </div>
+  `).join('');
+}
+
+// 검색 + 필터 + 정렬이 적용된 결제 내역 목록
+function getVisiblePayments() {
+  let list = getAllPayments();
+
+  const q = paymentFilterState.search.trim().toLowerCase();
+  if (q) {
+    list = list.filter(p =>
+      [p.customerName, p.customerStore, p.receipt, p.memo]
+        .some(field => (field || '').toLowerCase().includes(q))
+    );
+  }
+
+  if (paymentFilterState.status !== 'all') {
+    list = list.filter(p => p.status === paymentFilterState.status);
+  }
+  if (paymentFilterState.method !== 'all') {
+    list = list.filter(p => p.method === paymentFilterState.method);
+  }
+
+  switch (paymentFilterState.sort) {
+    case 'amount':
+      list.sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+      break;
+    case 'name':
+      list.sort((a, b) => a.customerStore.localeCompare(b.customerStore, 'ko'));
+      break;
+    default: // recent
+      list.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }
+
+  return list;
+}
+
+// 결제관리 테이블 렌더링
+function renderPaymentTable() {
+  const list = getVisiblePayments();
+  const tbody = document.getElementById('paymentTableBody');
+  const emptyState = document.getElementById('paymentEmptyState');
+
+  if (list.length === 0) {
+    tbody.innerHTML = '';
+    const isFiltering = paymentFilterState.search.trim() !== '' || paymentFilterState.status !== 'all' || paymentFilterState.method !== 'all';
+    document.querySelector('#paymentEmptyState .empty-title').textContent = isFiltering ? '검색 결과가 없습니다' : '결제 내역이 없습니다';
+    document.querySelector('#paymentEmptyState .empty-desc').textContent = isFiltering ? '다른 검색어나 필터 조건을 시도해보세요.' : '고객을 등록하고 결제를 추가해보세요.';
+    emptyState.hidden = false;
+    return;
+  }
+  emptyState.hidden = true;
+
+  const recordBadge = (status) => {
+    const meta = PAYMENT_RECORD_STATUS_META[status];
+    return meta ? `<span class="badge ${meta.badge}">${meta.label}</span>` : '-';
+  };
+
+  tbody.innerHTML = list.map(p => `
+    <tr data-customer-id="${p.customerId}" data-payment-id="${p.id}">
+      <td data-label="업체명">
+        <span class="cell-name">${statusDotHtml(p.customerStatus)}${escapeHtml(p.customerStore)}</span>
+      </td>
+      <td data-label="고객명">${escapeHtml(p.customerName)}</td>
+      <td data-label="결제일">${formatDate(p.date)}</td>
+      <td data-label="금액">${formatCurrency(p.amount)}</td>
+      <td data-label="결제 방식">${paymentBadgeHtml(p.method)}</td>
+      <td data-label="상태">${recordBadge(p.status)}</td>
+      <td data-label="증빙">${escapeHtml(p.receipt) || '-'}</td>
+      <td data-label="메모"><span class="cell-memo" title="${escapeHtml(p.memo)}">${escapeHtml(p.memo) || '-'}</span></td>
+      <td data-label="관리">
+        <div class="row-actions">
+          <button class="icon-btn act-payment-row-edit" data-customer-id="${p.customerId}" data-payment-id="${p.id}" title="수정">✎</button>
+          <button class="icon-btn act-payment-row-delete" data-customer-id="${p.customerId}" data-payment-id="${p.id}" title="삭제">🗑</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderPaymentPage() {
+  renderPaymentSummary();
+  renderPaymentTable();
+}
+
+// 구독관리 상세 드로어 → 결제관리 페이지로 이동하면서 해당 고객으로 검색 필터 적용
+function viewCustomerInPaymentPage(customer) {
+  paymentFilterState.search = customer.store;
+  document.getElementById('paymentSearchInput').value = customer.store;
+  closeModal('detailDrawerOverlay');
+  switchPage('payment');
+}
+
+/* ============================================================
+   4-D. 설정 페이지
+============================================================ */
+
+// 사이드바 하단의 관리자 정보 표시 갱신
+function renderAdminChip() {
+  document.getElementById('adminNameDisplay').textContent = appSettings.adminName || '관리자';
+  document.getElementById('adminTeamDisplay').textContent = appSettings.teamName || '운영팀';
+  document.getElementById('adminAvatar').textContent = (appSettings.adminName || '관').trim().charAt(0) || '관';
+}
+
+// 설정 페이지 입력값 / 통계 갱신
+function renderSettingsPage() {
+  renderPlanTemplateEditor();
+
+  document.getElementById('set_adminName').value = appSettings.adminName;
+  document.getElementById('set_teamName').value = appSettings.teamName;
+  document.getElementById('set_expiringThreshold').value = appSettings.expiringSoonThreshold;
+  document.getElementById('set_notifyOverdue').checked = appSettings.notifyOverdueOnLoad;
+
+  const totalScreens = customers.reduce((sum, c) => sum + Number(c.screenCount || 0), 0);
+  const totalPayments = getAllPayments().length;
+
+  document.getElementById('stat_totalCustomers').textContent = `${customers.length}명`;
+  document.getElementById('stat_totalScreens').textContent = `${totalScreens}대`;
+  document.getElementById('stat_totalPayments').textContent = `${totalPayments}건`;
+}
+
+// 설정 페이지의 플랜 템플릿 편집 행 렌더링 (현재 PLAN_TEMPLATES 값을 그대로 보여줌)
+function renderPlanTemplateEditor() {
+  const list = document.getElementById('planTemplateList');
+  list.innerHTML = PLAN_TEMPLATES.map(t => `
+    <div class="plan-template-row" data-plan-id="${t.id}">
+      <label class="ptr-field">
+        <span>플랜명</span>
+        <input type="text" class="ptr-name" value="${escapeHtml(t.name)}">
+      </label>
+      <label class="ptr-field">
+        <span>화면당 단가</span>
+        <input type="number" class="ptr-price" value="${t.pricePerScreen}" min="0" step="1">
+      </label>
+      <label class="ptr-field">
+        <span>기본 사이니지 수</span>
+        <input type="number" class="ptr-count" value="${t.defaultScreenCount}" min="1" step="1">
+      </label>
+      <label class="ptr-field">
+        <span>약정 기간(개월)</span>
+        <input type="number" class="ptr-duration" value="${t.durationMonths}" min="1" step="1">
+      </label>
+    </div>
+  `).join('');
+}
+
+// 설정 페이지에서 입력한 값으로 PLAN_TEMPLATES 갱신 + 등록 모달의 select 옵션 새로고침
+function savePlanTemplates() {
+  document.querySelectorAll('#planTemplateList .plan-template-row').forEach(row => {
+    const template = PLAN_TEMPLATES.find(t => t.id === row.dataset.planId);
+    if (!template) return;
+
+    const name = row.querySelector('.ptr-name').value.trim();
+    const price = Number(row.querySelector('.ptr-price').value);
+    const count = Number(row.querySelector('.ptr-count').value);
+    const duration = Number(row.querySelector('.ptr-duration').value);
+
+    template.name = name || template.name;
+    template.pricePerScreen = Number.isFinite(price) ? Math.max(0, price) : template.pricePerScreen;
+    template.defaultScreenCount = Number.isFinite(count) ? Math.max(1, count) : template.defaultScreenCount;
+    template.durationMonths = Number.isFinite(duration) ? Math.max(1, duration) : template.durationMonths;
+  });
+
+  renderPlanTemplateEditor();
+  populatePlanTemplateOptions();
+  showToast('플랜 템플릿이 저장되었습니다.', 'success');
+}
+
+// 고객 목록을 CSV 파일로 내보내기
+function exportCustomersCsv() {
+  const headers = ['업체명', '고객명', '연락처', '이메일', '플랜', '사이니지 수', '월 구독료', '결제 방식', '결제 상태', '구독 상태', '시작일', '만료일', '다음 결제일', '메모'];
+  const escapeCsv = (val) => `"${String(val ?? '').replaceAll('"', '""')}"`;
+
+  const rows = customers.map(c => [
+    c.store, c.name, c.phone, c.email, c.plan, c.screenCount,
+    c.monthlyFee, PAYMENT_META[c.paymentMethod]?.label || c.paymentMethod,
+    PAYMENT_STATUS_META[c.paymentStatus]?.label || c.paymentStatus,
+    STATUS_META[c.subscriptionStatus]?.label || c.subscriptionStatus,
+    c.startDate, c.endDate, c.nextPaymentDate, c.memo,
+  ].map(escapeCsv).join(','));
+
+  const csv = '\uFEFF' + [headers.map(escapeCsv).join(','), ...rows].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `구독고객목록_${todayStr()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  showToast('CSV 파일이 다운로드되었습니다.', 'success');
+}
+
+// 전체 초기화 (고객/결제 데이터는 완전히 비우고, 플랜 템플릿 + 알림/관리자 설정은 기본값으로 되돌림)
+function resetAllData() {
+  showLoading();
+  setTimeout(() => {
+    try {
+      customers = []; // 샘플로 되돌리는 게 아니라 완전히 빈 상태로 초기화
+
+      // 플랜 템플릿을 초기 기본값으로 복원
+      PLAN_TEMPLATES.forEach((t, i) => Object.assign(t, DEFAULT_PLAN_TEMPLATES[i]));
+      populatePlanTemplateOptions();
+
+      // 관리자 정보 / 알림 설정도 초기 기본값으로 복원
+      Object.assign(appSettings, DEFAULT_APP_SETTINGS);
+      renderAdminChip();
+
+      activeDetailId = null;
+      closeModal('detailDrawerOverlay');
+      renderAll();
+      if (currentPage === 'dashboard') renderDashboardPage();
+      if (currentPage === 'payment') renderPaymentPage();
+      renderSettingsPage();
+      showToast('초기화되었습니다.', 'success');
+    } catch (err) {
+      console.error('초기화 중 오류:', err);
+      showToast('초기화 중 오류가 발생했습니다: ' + err.message, 'error');
+    } finally {
+      hideLoading();
+    }
+  }, 350);
+}
+
+/* ============================================================
+   5. 고객 CRUD
+============================================================ */
+
+// 플랜 템플릿 select 옵션 채우기 (값이 바뀔 때마다 다시 호출해 최신 단가를 반영)
+function populatePlanTemplateOptions() {
+  const select = document.getElementById('f_planTemplate');
+  const currentValue = select.value;
+  const options = PLAN_TEMPLATES.map(t =>
+    `<option value="${t.id}">${escapeHtml(t.name)} — 화면당 ${formatCurrency(t.pricePerScreen)} · 기본 ${t.defaultScreenCount}대 · ${t.durationMonths}개월</option>`
+  ).join('');
+  select.innerHTML = `<option value="">직접 입력 (커스텀 플랜)</option>${options}`;
+  if ([...select.options].some(o => o.value === currentValue)) select.value = currentValue;
+}
+
+// 선택한 플랜 템플릿 값을 폼에 자동으로 채워넣음 (화면당 단가 × 기본 사이니지 수로 가격 계산)
+function applyPlanTemplate(templateId) {
+  const template = PLAN_TEMPLATES.find(t => t.id === templateId);
+  if (!template) return; // '직접 입력' 선택 시에는 기존 값을 그대로 둠
+
+  document.getElementById('f_plan').value = template.name;
+  document.getElementById('f_screenCount').value = template.defaultScreenCount;
+  document.getElementById('f_monthlyFee').value = template.pricePerScreen * template.defaultScreenCount;
+  recalcDatesFromTemplate(templateId);
+}
+
+// 사이니지 수량이 바뀔 때, 선택된 템플릿의 화면당 단가를 기준으로 월 구독료를 다시 계산
+function recalcPriceFromTemplate(templateId) {
+  const template = PLAN_TEMPLATES.find(t => t.id === templateId);
+  if (!template) return;
+  const screenCount = Number(document.getElementById('f_screenCount').value || 0);
+  document.getElementById('f_monthlyFee').value = template.pricePerScreen * screenCount;
+}
+
+// 시작일 + 플랜의 약정 기간을 기준으로 종료일 / 다음 결제일을 다시 계산
+function recalcDatesFromTemplate(templateId) {
+  const template = PLAN_TEMPLATES.find(t => t.id === templateId);
+  if (!template) return;
+
+  const startDate = document.getElementById('f_startDate').value || todayStr();
+  document.getElementById('f_endDate').value = addMonths(startDate, template.durationMonths);
+  document.getElementById('f_nextPaymentDate').value = addMonths(startDate, 1);
+}
+
+// 신규 등록 또는 수정 모달 열기 (id가 없으면 신규)
+function openCustomerModal(id = null) {
+  const form = document.getElementById('customerForm');
+  form.reset();
+  document.getElementById('customerId').value = '';
+
+  const customer = id ? customers.find(c => c.id === id) : null;
+  document.getElementById('customerModalTitle').textContent = customer ? '고객 정보 수정' : '신규 고객 등록';
+
+  if (customer) {
+    document.getElementById('customerId').value = customer.id;
+    document.getElementById('f_name').value = customer.name || '';
+    document.getElementById('f_store').value = customer.store || '';
+    document.getElementById('f_phone').value = customer.phone || '';
+    document.getElementById('f_email').value = customer.email || '';
+    document.getElementById('f_plan').value = customer.plan || '';
+    document.getElementById('f_monthlyFee').value = customer.monthlyFee || '';
+    document.getElementById('f_screenCount').value = customer.screenCount || '';
+    document.getElementById('f_paymentMethod').value = customer.paymentMethod || 'card';
+    document.getElementById('f_paymentStatus').value = customer.paymentStatus || 'paid';
+    document.getElementById('f_subscriptionStatus').value = customer.subscriptionStatus || 'active';
+    document.getElementById('f_startDate').value = customer.startDate || '';
+    document.getElementById('f_endDate').value = customer.endDate || '';
+    document.getElementById('f_nextPaymentDate').value = customer.nextPaymentDate || '';
+    document.getElementById('f_autoRenew').checked = !!customer.autoRenew;
+    document.getElementById('f_businessName').value = customer.businessName || '';
+    document.getElementById('f_businessNumber').value = customer.businessNumber || '';
+    document.getElementById('f_taxEmail').value = customer.taxEmail || '';
+    document.getElementById('f_depositorName').value = customer.depositorName || '';
+    document.getElementById('f_memo').value = customer.memo || '';
+
+    // 저장된 플랜명이 템플릿과 일치하면 해당 템플릿을 선택 표시 (값은 건드리지 않음)
+    const matched = PLAN_TEMPLATES.find(t => t.name === customer.plan);
+    document.getElementById('f_planTemplate').value = matched ? matched.id : '';
+  } else {
+    document.getElementById('f_paymentMethod').value = 'card';
+    document.getElementById('f_startDate').value = todayStr();
+
+    // 신규 등록 시 기본 플랜(베이직)을 자동으로 선택해 값을 채워줌
+    document.getElementById('f_planTemplate').value = 'basic';
+    applyPlanTemplate('basic');
+  }
+
+  openModal('customerModalOverlay');
+}
+
+// 등록/수정 폼 제출 처리
+function handleCustomerFormSubmit(e) {
+  e.preventDefault();
+
+  const name = document.getElementById('f_name').value.trim();
+  const store = document.getElementById('f_store').value.trim();
+  const phone = document.getElementById('f_phone').value.trim();
+  const plan = document.getElementById('f_plan').value.trim();
+  const monthlyFeeRaw = document.getElementById('f_monthlyFee').value;
+  const startDate = document.getElementById('f_startDate').value;
+  const endDate = document.getElementById('f_endDate').value;
+
+  // 필수 항목 검증 — 모달에 transform 효과가 있어서 브라우저 기본 유효성 검사 풍선말이
+  // 화면 밖으로 잘못 표시되는 경우가 있어, novalidate로 끄고 여기서 직접 검사함
+  const missing = [];
+  if (!name) missing.push('고객명');
+  if (!store) missing.push('업체명');
+  if (!phone) missing.push('연락처');
+  if (!plan) missing.push('플랜명');
+  if (monthlyFeeRaw === '' || isNaN(Number(monthlyFeeRaw))) missing.push('월 구독료');
+  if (!startDate) missing.push('시작일');
+  if (!endDate) missing.push('종료일');
+
+  if (missing.length > 0) {
+    showToast(`다음 항목을 확인해주세요: ${missing.join(', ')}`, 'error');
+    return;
+  }
+
+  const id = document.getElementById('customerId').value;
+  const paymentMethod = document.getElementById('f_paymentMethod').value;
+
+  const payload = {
+    name,
+    store,
+    phone,
+    email: document.getElementById('f_email').value.trim(),
+    plan,
+    monthlyFee: Number(monthlyFeeRaw),
+    screenCount: Number(document.getElementById('f_screenCount').value || 0),
+    paymentMethod,
+    paymentStatus: document.getElementById('f_paymentStatus').value,
+    subscriptionStatus: document.getElementById('f_subscriptionStatus').value,
+    startDate,
+    endDate,
+    nextPaymentDate: document.getElementById('f_nextPaymentDate').value,
+    autoRenew: document.getElementById('f_autoRenew').checked,
+    businessName: document.getElementById('f_businessName').value.trim(),
+    businessNumber: document.getElementById('f_businessNumber').value.trim(),
+    taxEmail: document.getElementById('f_taxEmail').value.trim(),
+    depositorName: document.getElementById('f_depositorName').value.trim(),
+    memo: document.getElementById('f_memo').value.trim(),
+  };
+
+  showLoading();
+  // 실제 서버 연동 시 이 부분에서 API 호출 (지금은 클라이언트 메모리에 저장)
+  setTimeout(() => {
+    if (id) {
+      const idx = customers.findIndex(c => c.id === id);
+      if (idx !== -1) customers[idx] = { ...customers[idx], ...payload };
+      showToast('고객 정보가 수정되었습니다.', 'success');
+    } else {
+      customers.unshift(mkCustomer({ ...payload, payments: [] }));
+      showToast('신규 고객이 등록되었습니다.', 'success');
+    }
+    hideLoading();
+    closeModal('customerModalOverlay');
+    renderAll();
+    if (currentPage === 'dashboard') renderDashboardPage();
+  }, 350);
+}
+
+// 고객 삭제
+function deleteCustomerById(id) {
+  showLoading();
+  setTimeout(() => {
+    customers = customers.filter(c => c.id !== id);
+    hideLoading();
+    showToast('고객 정보가 삭제되었습니다.', 'success');
+    closeModal('detailDrawerOverlay');
+    renderAll();
+    if (currentPage === 'dashboard') renderDashboardPage();
+  }, 300);
+}
+
+/* ============================================================
+   6. 결제내역 CRUD (고객 상세 드로어 내부)
+============================================================ */
+
+// 상세 드로어 열기
+function openDetailDrawer(id) {
+  activeDetailId = id;
+  renderDetailDrawer();
+  openModal('detailDrawerOverlay');
+}
+
+// 상세 드로어 내용 다시 그리기 (고객 정보 + 결제내역)
+function renderDetailDrawer() {
+  const customer = customers.find(c => c.id === activeDetailId);
+  if (!customer) return;
+
+  const profile = document.getElementById('detailProfile');
+  profile.innerHTML = `
+    <div class="dp-name">${statusDotHtml(customer.subscriptionStatus)}${escapeHtml(customer.store)}</div>
+    <div class="dp-store">${escapeHtml(customer.name)}</div>
+    <div class="dp-badges">
+      ${statusBadgeHtml(customer.subscriptionStatus)}
+      ${paymentBadgeHtml(customer.paymentMethod)}
+      ${paymentStatusBadgeHtml(customer.paymentStatus)}
+    </div>
+    <div class="dp-row"><span>연락처</span><span>${escapeHtml(customer.phone)}</span></div>
+    <div class="dp-row"><span>이메일</span><span>${escapeHtml(customer.email) || '-'}</span></div>
+    <div class="dp-row"><span>플랜</span><span>${escapeHtml(customer.plan)}</span></div>
+    <div class="dp-row"><span>월 구독료</span><span>${formatCurrency(customer.monthlyFee)}</span></div>
+    <div class="dp-row"><span>등록 화면 수</span><span>${customer.screenCount || 0}대</span></div>
+    <div class="dp-row"><span>시작일</span><span>${formatDate(customer.startDate)}</span></div>
+    <div class="dp-row"><span>만료일</span><span>${formatDate(customer.endDate)}</span></div>
+    <div class="dp-row"><span>다음 결제일</span><span>${formatDate(customer.nextPaymentDate)}</span></div>
+    <div class="dp-row"><span>남은 기간</span><span>${remainingDaysHtml(customer.endDate)}</span></div>
+    <div class="dp-row"><span>자동연장</span><span>${customer.autoRenew ? '사용' : '미사용'}</span></div>
+    ${customer.memo ? `<div class="dp-row"><span>메모</span><span>${escapeHtml(customer.memo)}</span></div>` : ''}
+  `;
+
+  const list = document.getElementById('paymentHistoryList');
+  const emptyMsg = document.getElementById('emptyPaymentMsg');
+  const history = (customer.paymentHistory || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (history.length === 0) {
+    list.innerHTML = '';
+    emptyMsg.hidden = false;
+  } else {
+    emptyMsg.hidden = true;
+    const statusLabel = { completed: '완료', pending: '대기', failed: '실패' };
+    list.innerHTML = history.map(p => `
+      <li class="payment-item" data-payment-id="${p.id}">
+        <div class="pi-main">
+          <span class="pi-amount">${formatCurrency(p.amount)}</span>
+          <span class="pi-meta">${formatDate(p.date)} · ${PAYMENT_META[p.method]?.label || p.method} · ${statusLabel[p.status] || p.status}${p.memo ? ' · ' + escapeHtml(p.memo) : ''}</span>
+        </div>
+      </li>
+    `).join('');
+  }
+}
+
+// 결제 추가/수정 모달 열기
+// options.customerId 가 있으면 해당 고객으로 고정, 없으면 select 로 직접 선택
+// options.paymentId 가 있으면 수정 모드 (소유 고객을 자동으로 찾음)
+function openPaymentModal(options = {}) {
+  let { paymentId = null, customerId = null } = options;
+
+  let payment = null;
+  if (paymentId && !customerId) {
+    // 결제관리 페이지에서 수정 클릭한 경우 — 소유 고객을 역으로 탐색
+    const owner = findPaymentOwner(paymentId);
+    if (owner) { payment = owner.payment; customerId = owner.customer.id; }
+  } else if (paymentId && customerId) {
+    const customer = customers.find(c => c.id === customerId);
+    payment = customer ? customer.paymentHistory.find(p => p.id === paymentId) : null;
+  }
+
+  const form = document.getElementById('paymentForm');
+  form.reset();
+  document.getElementById('p_id').value = paymentId || '';
+
+  // 고객 선택 select 채우기
+  const select = document.getElementById('p_customerId');
+  const sortedCustomers = customers.slice().sort((a, b) => a.store.localeCompare(b.store, 'ko'));
+  const optionsHtml = sortedCustomers
+    .map(c => `<option value="${c.id}">${escapeHtml(c.store)} (${escapeHtml(c.name)})</option>`)
+    .join('');
+  select.innerHTML = customerId
+    ? optionsHtml
+    : `<option value="" disabled selected>고객을 선택하세요</option>${optionsHtml}`;
+  if (customerId) select.value = customerId;
+
+  document.getElementById('paymentModalTitle').textContent = payment ? '결제 내역 수정' : '결제 추가';
+
+  if (payment) {
+    document.getElementById('p_date').value = payment.date;
+    document.getElementById('p_amount').value = payment.amount;
+    document.getElementById('p_method').value = payment.method;
+    document.getElementById('p_status').value = payment.status;
+    document.getElementById('p_receipt').value = payment.receipt || '';
+    document.getElementById('p_memo').value = payment.memo || '';
+  } else {
+    document.getElementById('p_date').value = todayStr();
+    const presetCustomer = customerId ? customers.find(c => c.id === customerId) : null;
+    if (presetCustomer) {
+      document.getElementById('p_amount').value = presetCustomer.monthlyFee || '';
+      document.getElementById('p_method').value = presetCustomer.paymentMethod || 'card';
+    }
+  }
+
+  openModal('paymentModalOverlay');
+}
+
+// 결제 id 로 해당 결제를 보유한 고객을 찾음 (결제관리 페이지에서 사용)
+function findPaymentOwner(paymentId) {
+  for (const c of customers) {
+    const payment = (c.paymentHistory || []).find(p => p.id === paymentId);
+    if (payment) return { customer: c, payment };
+  }
+  return null;
+}
+
+// 결제 추가/수정 폼 제출
+function handlePaymentFormSubmit(e) {
+  e.preventDefault();
+
+  const customerId = document.getElementById('p_customerId').value;
+  const customer = customers.find(c => c.id === customerId);
+  if (!customer) {
+    showToast('고객을 선택해주세요.', 'error');
+    return;
+  }
+
+  const date = document.getElementById('p_date').value;
+  const amountRaw = document.getElementById('p_amount').value;
+  const missing = [];
+  if (!date) missing.push('결제일');
+  if (amountRaw === '' || isNaN(Number(amountRaw))) missing.push('금액');
+  if (missing.length > 0) {
+    showToast(`다음 항목을 확인해주세요: ${missing.join(', ')}`, 'error');
+    return;
+  }
+
+  const paymentId = document.getElementById('p_id').value;
+  const payload = {
+    date,
+    amount: Number(amountRaw),
+    method: document.getElementById('p_method').value,
+    status: document.getElementById('p_status').value,
+    receipt: document.getElementById('p_receipt').value.trim(),
+    memo: document.getElementById('p_memo').value.trim(),
+  };
+
+  showLoading();
+  setTimeout(() => {
+    if (paymentId) {
+      const idx = customer.paymentHistory.findIndex(p => p.id === paymentId);
+      if (idx !== -1) customer.paymentHistory[idx] = { ...customer.paymentHistory[idx], ...payload };
+      showToast('결제 내역이 수정되었습니다.', 'success');
+    } else {
+      customer.paymentHistory.push({ id: generateId('pay'), ...payload });
+      showToast('결제 내역이 추가되었습니다.', 'success');
+    }
+    hideLoading();
+    closeModal('paymentModalOverlay');
+    if (activeDetailId === customer.id) renderDetailDrawer();
+    if (currentPage === 'payment') renderPaymentPage();
+    renderAll();
+  }, 300);
+}
+
+// 결제 내역 삭제
+function deletePaymentById(customerId, paymentId) {
+  const customer = customers.find(c => c.id === customerId);
+  if (!customer) return;
+  showLoading();
+  setTimeout(() => {
+    customer.paymentHistory = customer.paymentHistory.filter(p => p.id !== paymentId);
+    hideLoading();
+    showToast('결제 내역이 삭제되었습니다.', 'success');
+    if (activeDetailId === customerId) renderDetailDrawer();
+    if (currentPage === 'payment') renderPaymentPage();
+  }, 250);
+}
+
+/* ============================================================
+   7. 공통 UI — 모달 / 토스트 / 로딩 / 삭제확인
+============================================================ */
+
+function openModal(overlayId) {
+  document.getElementById(overlayId).classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(overlayId) {
+  document.getElementById(overlayId).classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+function showLoading() {
+  document.getElementById('loadingOverlay').hidden = false;
+}
+function hideLoading() {
+  document.getElementById('loadingOverlay').hidden = true;
+}
+
+// 토스트 메시지 표시 (success / error / info)
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add('toast-out');
+    toast.addEventListener('animationend', () => toast.remove(), { once: true });
+  }, 2200);
+}
+
+// 삭제 확인 dialog 표시. onConfirm 은 '삭제' 버튼 클릭 시 실행될 함수
+function requestConfirm(title, desc, onConfirm, confirmLabel = '삭제') {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmDesc').textContent = desc;
+  document.getElementById('confirmOkBtn').textContent = confirmLabel;
+  pendingConfirm = onConfirm;
+  document.getElementById('confirmDialogOverlay').classList.add('is-open');
+}
+
+function closeConfirmDialog() {
+  document.getElementById('confirmDialogOverlay').classList.remove('is-open');
+  pendingConfirm = null;
+}
+
+/* ============================================================
+   8. 이벤트 바인딩
+============================================================ */
+function bindEvents() {
+  // 검색 (실시간)
+  document.getElementById('searchInput').addEventListener('input', (e) => {
+    filterState.search = e.target.value;
+    renderTable();
+  });
+
+  // 구독 상태 필터 chip
+  document.getElementById('statusFilterGroup').addEventListener('click', (e) => {
+    const btn = e.target.closest('.chip');
+    if (!btn) return;
+    document.querySelectorAll('#statusFilterGroup .chip').forEach(c => c.classList.remove('is-active'));
+    btn.classList.add('is-active');
+    filterState.status = btn.dataset.value;
+    renderTable();
+  });
+
+  // 결제방식 필터 / 정렬
+  document.getElementById('paymentFilterSelect').addEventListener('change', (e) => {
+    filterState.payment = e.target.value;
+    renderTable();
+  });
+  document.getElementById('sortSelect').addEventListener('change', (e) => {
+    filterState.sort = e.target.value;
+    renderTable();
+  });
+
+  // 신규 등록 버튼
+  document.getElementById('openCreateModalBtn').addEventListener('click', () => openCustomerModal());
+
+  // 플랜 템플릿 선택 시 플랜명/구독료/사이니지 수/날짜 자동 입력
+  document.getElementById('f_planTemplate').addEventListener('change', (e) => {
+    applyPlanTemplate(e.target.value);
+  });
+
+  // 사이니지 수량을 바꾸면, 템플릿이 선택된 상태에서는 월 구독료를 단가 기준으로 재계산
+  document.getElementById('f_screenCount').addEventListener('input', () => {
+    const templateId = document.getElementById('f_planTemplate').value;
+    if (templateId) recalcPriceFromTemplate(templateId);
+  });
+
+  // 시작일을 바꾸면, 템플릿이 선택된 상태에서는 종료일/다음결제일도 같이 재계산
+  document.getElementById('f_startDate').addEventListener('change', () => {
+    const templateId = document.getElementById('f_planTemplate').value;
+    if (templateId) recalcDatesFromTemplate(templateId);
+  });
+
+  // 고객 등록/수정 폼 제출
+  document.getElementById('customerForm').addEventListener('submit', handleCustomerFormSubmit);
+
+  // 결제 추가/수정 폼 제출
+  document.getElementById('paymentForm').addEventListener('submit', handlePaymentFormSubmit);
+
+  // 테이블 행 클릭 → 상세 드로어 / 액션 버튼
+  document.getElementById('customerTableBody').addEventListener('click', (e) => {
+    const editBtn = e.target.closest('.act-edit');
+    const deleteBtn = e.target.closest('.act-delete');
+    const detailBtn = e.target.closest('.act-detail');
+
+    if (editBtn) { openCustomerModal(editBtn.dataset.id); return; }
+    if (deleteBtn) {
+      const id = deleteBtn.dataset.id;
+      const c = customers.find(c => c.id === id);
+      requestConfirm('고객을 삭제하시겠습니까?', `${c?.name || ''} (${c?.store || ''}) 고객의 모든 정보가 삭제됩니다.`,
+        () => deleteCustomerById(id));
+      return;
+    }
+    if (detailBtn) { openDetailDrawer(detailBtn.dataset.id); return; }
+
+    // 행 자체 클릭 → 상세 드로어
+    const row = e.target.closest('tr');
+    if (row && row.dataset.id) openDetailDrawer(row.dataset.id);
+  });
+
+  // 상세 드로어 내부 액션
+  document.getElementById('detailEditBtn').addEventListener('click', () => {
+    closeModal('detailDrawerOverlay');
+    openCustomerModal(activeDetailId);
+  });
+  document.getElementById('detailDeleteBtn').addEventListener('click', () => {
+    const c = customers.find(c => c.id === activeDetailId);
+    requestConfirm('고객을 삭제하시겠습니까?', `${c?.name || ''} (${c?.store || ''}) 고객의 모든 정보가 삭제됩니다.`,
+      () => deleteCustomerById(activeDetailId));
+  });
+  document.getElementById('viewInPaymentPageBtn').addEventListener('click', () => {
+    const customer = customers.find(c => c.id === activeDetailId);
+    if (customer) viewCustomerInPaymentPage(customer);
+  });
+
+  document.getElementById('paymentHistoryList').addEventListener('click', () => {
+    const customer = customers.find(c => c.id === activeDetailId);
+    if (customer) viewCustomerInPaymentPage(customer);
+  });
+
+  // 모달 닫기 (배경 클릭 / X 버튼)
+  // 단, 입력 폼이 있는 모달(고객 등록·결제 등록)은 배경 클릭으로 닫히지 않게 함 — 실수로 클릭해 입력 내용을 잃는 것을 방지
+  document.querySelectorAll('[data-close-modal]').forEach(btn => {
+    btn.addEventListener('click', () => closeModal(btn.dataset.closeModal));
+  });
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    if (overlay.hasAttribute('data-no-backdrop-close')) return;
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeModal(overlay.id);
+    });
+  });
+
+  // 삭제 확인 dialog
+  document.getElementById('confirmOkBtn').addEventListener('click', () => {
+    if (typeof pendingConfirm === 'function') pendingConfirm();
+    closeConfirmDialog();
+  });
+  document.getElementById('confirmCancelBtn').addEventListener('click', closeConfirmDialog);
+  document.getElementById('confirmDialogOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'confirmDialogOverlay') closeConfirmDialog();
+  });
+
+  // ESC 키로 모달 닫기
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('.modal-overlay.is-open').forEach(o => closeModal(o.id));
+    closeConfirmDialog();
+  });
+
+  // 모바일 사이드바 토글 (페이지마다 토글 버튼이 따로 있음)
+  document.querySelectorAll('.sidebar-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebarBackdrop').classList.add('is-visible');
+    });
+  });
+  document.getElementById('sidebarBackdrop').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.remove('is-open');
+    document.getElementById('sidebarBackdrop').classList.remove('is-visible');
+  });
+
+  // 사이드 메뉴 — Dashboard / 구독관리 / 결제관리 / 설정 페이지 전환
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => switchPage(item.dataset.page));
+  });
+
+  /* ---------------- Dashboard 페이지 ---------------- */
+  const goToCustomerDetail = (e) => {
+    const item = e.target.closest('.dash-list-item');
+    if (!item) return;
+    switchPage('subscription');
+    openDetailDrawer(item.dataset.customerId);
+  };
+  document.getElementById('dashExpiringList').addEventListener('click', goToCustomerDetail);
+  document.getElementById('dashOverdueList').addEventListener('click', goToCustomerDetail);
+
+  /* ---------------- 결제관리 페이지 ---------------- */
+  document.getElementById('paymentSearchInput').addEventListener('input', (e) => {
+    paymentFilterState.search = e.target.value;
+    renderPaymentTable();
+  });
+  document.getElementById('paymentStatusFilterGroup').addEventListener('click', (e) => {
+    const btn = e.target.closest('.chip');
+    if (!btn) return;
+    document.querySelectorAll('#paymentStatusFilterGroup .chip').forEach(c => c.classList.remove('is-active'));
+    btn.classList.add('is-active');
+    paymentFilterState.status = btn.dataset.value;
+    renderPaymentTable();
+  });
+  document.getElementById('paymentMethodFilterSelect').addEventListener('change', (e) => {
+    paymentFilterState.method = e.target.value;
+    renderPaymentTable();
+  });
+  document.getElementById('paymentSortSelect').addEventListener('change', (e) => {
+    paymentFilterState.sort = e.target.value;
+    renderPaymentTable();
+  });
+  document.getElementById('openCreatePaymentBtn').addEventListener('click', () => openPaymentModal());
+
+  document.getElementById('paymentTableBody').addEventListener('click', (e) => {
+    const editBtn = e.target.closest('.act-payment-row-edit');
+    const deleteBtn = e.target.closest('.act-payment-row-delete');
+
+    if (editBtn) {
+      openPaymentModal({ paymentId: editBtn.dataset.paymentId, customerId: editBtn.dataset.customerId });
+      return;
+    }
+    if (deleteBtn) {
+      const { customerId, paymentId } = deleteBtn.dataset;
+      requestConfirm('결제 내역을 삭제하시겠습니까?', '이 작업은 되돌릴 수 없습니다.',
+        () => deletePaymentById(customerId, paymentId));
+      return;
+    }
+
+    // 행 자체 클릭 → 해당 고객 상세 드로어로 이동
+    const row = e.target.closest('tr');
+    if (row && row.dataset.customerId) {
+      switchPage('subscription');
+      openDetailDrawer(row.dataset.customerId);
+    }
+  });
+
+  /* ---------------- 설정 페이지 ---------------- */
+  document.getElementById('savePlanTemplatesBtn').addEventListener('click', savePlanTemplates);
+
+  document.getElementById('saveAdminInfoBtn').addEventListener('click', () => {
+    appSettings.adminName = document.getElementById('set_adminName').value.trim() || '관리자';
+    appSettings.teamName = document.getElementById('set_teamName').value.trim() || '운영팀';
+    renderAdminChip();
+    showToast('관리자 정보가 저장되었습니다.', 'success');
+  });
+
+  document.getElementById('saveAlertSettingsBtn').addEventListener('click', () => {
+    const threshold = Number(document.getElementById('set_expiringThreshold').value || 7);
+    appSettings.expiringSoonThreshold = Math.min(30, Math.max(1, threshold));
+    appSettings.notifyOverdueOnLoad = document.getElementById('set_notifyOverdue').checked;
+    document.getElementById('set_expiringThreshold').value = appSettings.expiringSoonThreshold;
+    renderTable(); // 변경된 기준일을 구독관리 테이블에 즉시 반영
+    showToast('알림 설정이 저장되었습니다.', 'success');
+  });
+
+  document.getElementById('exportCsvBtn').addEventListener('click', exportCustomersCsv);
+
+  document.getElementById('resetDataBtn').addEventListener('click', () => {
+    requestConfirm('초기화하시겠습니까?', '등록된 모든 고객·결제 데이터가 삭제되고 빈 상태로 초기화됩니다.',
+      resetAllData, '초기화');
+  });
+}
+
+/* ============================================================
+   9. 초기화
+============================================================ */
+// 예상치 못한 에러가 나도 화면에 보이도록 함 (조용히 먹통되는 것을 방지)
+window.addEventListener('error', (e) => {
+  console.error('전역 에러:', e.error || e.message);
+  if (typeof showToast === 'function') {
+    showToast('오류가 발생했습니다: ' + (e.message || '알 수 없는 오류'), 'error');
+  }
+});
+
+function init() {
+  seedData();
+  populatePlanTemplateOptions();
+  bindEvents();
+  renderDashboardPage();
+  renderAdminChip();
+
+  // 설정에서 켜져 있으면 접속 시 미납 고객 알림
+  if (appSettings.notifyOverdueOnLoad) {
+    const overdueCount = customers.filter(c => c.subscriptionStatus === 'overdue').length;
+    if (overdueCount > 0) {
+      showToast(`미납 고객이 ${overdueCount}명 있습니다.`, 'info');
+    }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+</script>
+</body>
+</html>
