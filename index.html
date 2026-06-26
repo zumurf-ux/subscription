@@ -115,8 +115,17 @@ ul { padding: 0; list-style: none; }
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 8px 24px;
+  padding: 8px;
+  margin: -8px -8px 16px;
+  width: calc(100% + 16px);
+  border: none;
+  background: transparent;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background var(--t-fast);
+  text-align: left;
 }
+.sidebar-brand:hover { background: var(--gray-6); }
 .brand-mark { color: var(--primary); font-size: 18px; }
 .brand-name { font-weight: 700; font-size: 15px; letter-spacing: -0.2px; }
 
@@ -899,10 +908,10 @@ ul { padding: 0; list-style: none; }
 
   <!-- ===================== 사이드 메뉴 (PC) / 하단 탭(모바일) ===================== -->
   <aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
+    <button class="sidebar-brand" id="sidebarBrandBtn" type="button">
       <span class="brand-mark">●</span>
       <span class="brand-name">사이니지 구독관리</span>
-    </div>
+    </button>
 
     <nav class="sidebar-nav">
       <button class="nav-item is-active" data-page="dashboard" type="button">
@@ -1397,7 +1406,7 @@ ul { padding: 0; list-style: none; }
     </form>
 
     <footer class="modal-footer">
-      <button class="btn btn-ghost" type="button" data-close-modal="customerModalOverlay">취소</button>
+      <button class="btn btn-secondary" type="button" data-close-modal="customerModalOverlay">취소</button>
       <button class="btn btn-primary" type="submit" form="customerForm" id="customerSaveBtn">저장</button>
     </footer>
   </div>
@@ -1498,7 +1507,7 @@ ul { padding: 0; list-style: none; }
     </form>
 
     <footer class="modal-footer">
-      <button class="btn btn-ghost" type="button" data-close-modal="paymentModalOverlay">취소</button>
+      <button class="btn btn-secondary" type="button" data-close-modal="paymentModalOverlay">취소</button>
       <button class="btn btn-primary" type="submit" form="paymentForm">저장</button>
     </footer>
   </div>
@@ -1513,7 +1522,7 @@ ul { padding: 0; list-style: none; }
     <p class="confirm-title" id="confirmTitle">정말 삭제하시겠습니까?</p>
     <p class="confirm-desc" id="confirmDesc">이 작업은 되돌릴 수 없습니다.</p>
     <div class="confirm-actions">
-      <button class="btn btn-ghost" id="confirmCancelBtn" type="button">취소</button>
+      <button class="btn btn-secondary" id="confirmCancelBtn" type="button">취소</button>
       <button class="btn btn-danger" id="confirmOkBtn" type="button">삭제</button>
     </div>
   </div>
@@ -2948,6 +2957,9 @@ function bindEvents() {
     document.getElementById('sidebar').classList.remove('is-open');
     document.getElementById('sidebarBackdrop').classList.remove('is-visible');
   });
+
+  // 사이드바 상단 로고 클릭 → 대시보드로 이동
+  document.getElementById('sidebarBrandBtn').addEventListener('click', () => switchPage('dashboard'));
 
   // 사이드 메뉴 — Dashboard / 구독관리 / 결제관리 / 설정 페이지 전환
   document.querySelectorAll('.nav-item').forEach(item => {
