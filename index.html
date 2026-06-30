@@ -9,6 +9,10 @@
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
 <style>
 /* ============================================================
    구독관리 어드민 — Apple 스타일 디자인 시스템
@@ -2373,7 +2377,7 @@ function savePlanTemplates() {
 
   renderPlanTemplateEditor();
   populatePlanTemplateOptions();
-  saveToStorage();
+  saveSettingsToFirestore();
   showToast('플랜 템플릿이 저장되었습니다.', 'success');
 }
 
@@ -2425,7 +2429,7 @@ function resetAllData() {
       if (currentPage === 'dashboard') renderDashboardPage();
       if (currentPage === 'payment') renderPaymentPage();
       renderSettingsPage();
-      saveToStorage();
+      deleteAllCustomersFromFirestore().then(() => saveSettingsToFirestore());
       showToast('초기화되었습니다.', 'success');
     } catch (err) {
       console.error('초기화 중 오류:', err);
@@ -2581,17 +2585,21 @@ function handleCustomerFormSubmit(e) {
   };
 
   showLoading();
-  // 실제 서버 연동 시 이 부분에서 API 호출 (지금은 클라이언트 localStorage에 저장)
+  // Firebase Firestore에 저장 (saveCustomerToFirestore 함수 내부에서 처리)
   setTimeout(() => {
     if (id) {
       const idx = customers.findIndex(c => c.id === id);
-      if (idx !== -1) customers[idx] = { ...customers[idx], ...payload };
+      if (idx !== -1) {
+        customers[idx] = { ...customers[idx], ...payload };
+        saveCustomerToFirestore(customers[idx]);
+      }
       showToast('고객 정보가 수정되었습니다.', 'success');
     } else {
-      customers.unshift(mkCustomer({ ...payload, payments: [] }));
+      const newCust = mkCustomer({ ...payload, payments: [] });
+      customers.unshift(newCust);
+      saveCustomerToFirestore(newCust);
       showToast('신규 고객이 등록되었습니다.', 'success');
     }
-    saveToStorage();
     hideLoading();
     closeModal('customerModalOverlay');
     renderAll();
@@ -2604,7 +2612,7 @@ function deleteCustomerById(id) {
   showLoading();
   setTimeout(() => {
     customers = customers.filter(c => c.id !== id);
-    saveToStorage();
+    deleteCustomerFromFirestore(id);
     hideLoading();
     showToast('고객 정보가 삭제되었습니다.', 'success');
     closeModal('detailDrawerOverlay');
@@ -2774,7 +2782,7 @@ function handlePaymentFormSubmit(e) {
       customer.paymentHistory.push({ id: generateId('pay'), ...payload });
       showToast('결제 내역이 추가되었습니다.', 'success');
     }
-    saveToStorage();
+    saveCustomerToFirestore(customer);
     hideLoading();
     closeModal('paymentModalOverlay');
     if (activeDetailId === customer.id) renderDetailDrawer();
@@ -2790,7 +2798,7 @@ function deletePaymentById(customerId, paymentId) {
   showLoading();
   setTimeout(() => {
     customer.paymentHistory = customer.paymentHistory.filter(p => p.id !== paymentId);
-    saveToStorage();
+    saveCustomerToFirestore(customer);
     hideLoading();
     showToast('결제 내역이 삭제되었습니다.', 'success');
     if (activeDetailId === customerId) renderDetailDrawer();
@@ -3060,7 +3068,7 @@ function bindEvents() {
     appSettings.adminName = document.getElementById('set_adminName').value.trim() || '관리자';
     appSettings.teamName = document.getElementById('set_teamName').value.trim() || '운영팀';
     renderAdminChip();
-    saveToStorage();
+    saveSettingsToFirestore();
     showToast('관리자 정보가 저장되었습니다.', 'success');
   });
 
@@ -3070,7 +3078,7 @@ function bindEvents() {
     appSettings.notifyOverdueOnLoad = document.getElementById('set_notifyOverdue').checked;
     document.getElementById('set_expiringThreshold').value = appSettings.expiringSoonThreshold;
     renderTable(); // 변경된 기준일을 구독관리 테이블에 즉시 반영
-    saveToStorage();
+    saveSettingsToFirestore();
     showToast('알림 설정이 저장되었습니다.', 'success');
   });
 
@@ -3093,54 +3101,102 @@ window.addEventListener('error', (e) => {
   }
 });
 
-// 새로고침해도 데이터가 남아있도록 localStorage에 저장/불러오기
-const STORAGE_KEY = 'signage_subscription_admin_v1';
+// ============================================================
+// Firebase Firestore 연동
+// — 고객 데이터를 Firestore에 저장해 어떤 기기에서도 동일한 데이터를 볼 수 있음
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyAYgc4JqPAQdK55PQ3wedqEL5hjkCrwhX8",
+  authDomain: "signage-subscription.firebaseapp.com",
+  projectId: "signage-subscription",
+  storageBucket: "signage-subscription.firebasestorage.app",
+  messagingSenderId: "912091432460",
+  appId: "1:912091432460:web:91bf57ac63dfc66c901029"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-function saveToStorage() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      customers,
-      planTemplates: PLAN_TEMPLATES,
-      appSettings,
-    }));
-  } catch (err) {
-    console.warn('localStorage 저장 실패 (브라우저 저장공간 제한/차단 가능):', err);
-  }
+// --- 고객 1명을 Firestore에 저장/덮어쓰기 ---
+function saveCustomerToFirestore(customer) {
+  // paymentHistory 배열이 undefined 없이 직렬화 가능한지 확인
+  const data = JSON.parse(JSON.stringify(customer));
+  db.collection('customers').doc(data.id).set(data)
+    .catch(err => console.error('Firestore 고객 저장 실패:', err));
 }
 
-// 저장된 데이터가 있으면 불러와서 적용. 불러왔으면 true, 없으면 false 반환
-function loadFromStorage() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return false;
-    const data = JSON.parse(raw);
+// --- 고객 1명을 Firestore에서 삭제 ---
+function deleteCustomerFromFirestore(id) {
+  db.collection('customers').doc(id).delete()
+    .catch(err => console.error('Firestore 고객 삭제 실패:', err));
+}
 
-    if (Array.isArray(data.customers)) customers = data.customers;
-    if (Array.isArray(data.planTemplates)) {
-      data.planTemplates.forEach((saved, i) => {
-        if (PLAN_TEMPLATES[i]) Object.assign(PLAN_TEMPLATES[i], saved);
-      });
+// --- 설정(플랜 템플릿 + 앱 설정)을 Firestore에 저장 ---
+function saveSettingsToFirestore() {
+  db.collection('config').doc('app').set({
+    planTemplates: PLAN_TEMPLATES,
+    appSettings,
+  }).catch(err => console.error('Firestore 설정 저장 실패:', err));
+}
+
+// --- Firestore에서 전체 데이터 불러오기 (비동기) ---
+async function loadFromFirestore() {
+  try {
+    // 고객 데이터
+    const snapshot = await db.collection('customers').get();
+    if (!snapshot.empty) {
+      customers = snapshot.docs.map(doc => doc.data());
+      // 최근 등록순으로 정렬
+      customers.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
-    if (data.appSettings) Object.assign(appSettings, data.appSettings);
+
+    // 설정 데이터
+    const configDoc = await db.collection('config').doc('app').get();
+    if (configDoc.exists) {
+      const data = configDoc.data();
+      if (data.appSettings) Object.assign(appSettings, data.appSettings);
+      if (Array.isArray(data.planTemplates)) {
+        data.planTemplates.forEach((saved, i) => {
+          if (PLAN_TEMPLATES[i]) Object.assign(PLAN_TEMPLATES[i], saved);
+        });
+      }
+    }
+
     return true;
   } catch (err) {
-    console.warn('localStorage 불러오기 실패:', err);
+    console.error('Firestore 불러오기 실패:', err);
     return false;
   }
 }
 
-function init() {
-  const restored = loadFromStorage();
-  if (!restored) {
-    seedData();
-    saveToStorage();
+// --- Firestore의 모든 고객 문서 삭제 (초기화 시 사용) ---
+async function deleteAllCustomersFromFirestore() {
+  const snapshot = await db.collection('customers').get();
+  const batch = db.batch();
+  snapshot.docs.forEach(doc => batch.delete(doc.ref));
+  await batch.commit();
+}
+
+async function init() {
+  showLoading();
+  try {
+    const loaded = await loadFromFirestore();
+    // Firestore에 데이터가 없으면 (최초 실행) 빈 상태로 시작
+    if (!loaded || customers.length === 0) {
+      // 첫 실행이라도 빈 상태로 시작 (필요하면 설정만 저장)
+      await saveSettingsToFirestore();
+    }
+  } catch (err) {
+    console.error('초기화 중 오류:', err);
+    showToast('데이터 로드 중 오류가 발생했습니다.', 'error');
+  } finally {
+    hideLoading();
   }
+
   populatePlanTemplateOptions();
   bindEvents();
   renderDashboardPage();
   renderAdminChip();
 
-  // 설정에서 켜져 있으면 접속 시 미납 고객 알림
   if (appSettings.notifyOverdueOnLoad) {
     const overdueCount = customers.filter(c => c.subscriptionStatus === 'overdue').length;
     if (overdueCount > 0) {
